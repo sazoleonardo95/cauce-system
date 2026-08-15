@@ -1,6 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
 
-const API_URL = 'http://localhost:4000/api';
+const API_URL = 'https://cauce-system-production.up.railway.app/api';
 
 class ApiClient {
   constructor() {
