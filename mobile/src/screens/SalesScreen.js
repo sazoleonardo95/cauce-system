@@ -1,0 +1,536 @@
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  FlatList,
+  StyleSheet,
+  TouchableOpacity,
+  ActivityIndicator,
+  Alert,
+  Modal,
+  ScrollView,
+  TextInput,
+} from 'react-native';
+import { api } from '../lib/api';
+import { formatCurrency, formatDate, COLORS } from '../lib/utils';
+
+export default function SalesScreen() {
+  const [sales, setSales] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showNewSale, setShowNewSale] = useState(false);
+  const [products, setProducts] = useState([]);
+  const [customers, setCustomers] = useState([]);
+  const [warehouses, setWarehouses] = useState([]);
+  const [selectedItems, setSelectedItems] = useState([]);
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [selectedWarehouse, setSelectedWarehouse] = useState(null);
+  const [taxRate, setTaxRate] = useState('16');
+
+  useEffect(() => {
+    loadSales();
+    loadProducts();
+  }, []);
+
+  const loadSales = async () => {
+    try {
+      const data = await api.getSales({ limit: 50 });
+      setSales(data.sales);
+    } catch (error) {
+      console.error('Error loading sales:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadProducts = async () => {
+    try {
+      const [p, c, w] = await Promise.all([
+        api.getProducts({ limit: 200 }),
+        api.getCustomers({ limit: 100 }),
+        api.getWarehouses(),
+      ]);
+      setProducts(p.products);
+      setCustomers(c.customers);
+      setWarehouses(w);
+    } catch (error) {
+      console.error('Error loading data:', error);
+    }
+  };
+
+  const addItem = (product) => {
+    const existing = selectedItems.find((i) => i.productId === product.id);
+    if (existing) {
+      setSelectedItems(
+        selectedItems.map((i) =>
+          i.productId === product.id ? { ...i, quantity: i.quantity + 1 } : i
+        )
+      );
+    } else {
+      setSelectedItems([
+        ...selectedItems,
+        {
+          productId: product.id,
+          name: product.name,
+          unitPrice: product.price,
+          quantity: 1,
+          discount: 0,
+        },
+      ]);
+    }
+  };
+
+  const removeItem = (productId) => {
+    setSelectedItems(selectedItems.filter((i) => i.productId !== productId));
+  };
+
+  const updateQuantity = (productId, qty) => {
+    if (qty < 1) {
+      removeItem(productId);
+      return;
+    }
+    setSelectedItems(
+      selectedItems.map((i) =>
+        i.productId === productId ? { ...i, quantity: qty } : i
+      )
+    );
+  };
+
+  const subtotal = selectedItems.reduce(
+    (sum, item) => sum + item.unitPrice * item.quantity - item.discount,
+    0
+  );
+  const taxAmount = subtotal * (parseFloat(taxRate) || 0) / 100;
+  const total = subtotal + taxAmount;
+
+  const handleCreateSale = async () => {
+    if (selectedItems.length === 0) {
+      Alert.alert('Error', 'Agrega al menos un producto');
+      return;
+    }
+
+    try {
+      await api.createSale({
+        customerId: selectedCustomer,
+        warehouseId: selectedWarehouse,
+        items: selectedItems.map(({ productId, quantity, unitPrice, discount }) => ({
+          productId,
+          quantity,
+          unitPrice,
+          discount,
+        })),
+        taxRate: parseFloat(taxRate) || 0,
+        paymentMethod: 'cash',
+      });
+      Alert.alert('Exito', 'Venta registrada');
+      setShowNewSale(false);
+      setSelectedItems([]);
+      setSelectedCustomer(null);
+      setSelectedWarehouse(null);
+      loadSales();
+    } catch (error) {
+      Alert.alert('Error', error.message);
+    }
+  };
+
+  const renderSale = ({ item }) => (
+    <View style={styles.saleCard}>
+      <View style={styles.saleHeader}>
+        <Text style={styles.saleNumber}>{item.saleNumber}</Text>
+        <View style={[
+          styles.statusBadge,
+          item.status === 'COMPLETED' && styles.statusCompleted,
+          item.status === 'CANCELLED' && styles.statusCancelled,
+        ]}>
+          <Text style={styles.statusText}>{item.status}</Text>
+        </View>
+      </View>
+      <View style={styles.saleBody}>
+        <Text style={styles.saleSeller}>{item.seller?.firstName} {item.seller?.lastName}</Text>
+        <Text style={styles.saleCustomer}>{item.customer?.name || 'Sin cliente'}</Text>
+        <Text style={styles.saleDate}>{formatDate(item.saleDate)}</Text>
+      </View>
+      <View style={styles.saleFooter}>
+        <Text style={styles.saleTotal}>{formatCurrency(item.total)}</Text>
+        <Text style={styles.saleItems}>{item.items?.length || 0} items</Text>
+      </View>
+    </View>
+  );
+
+  return (
+    <View style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Ventas</Text>
+        <TouchableOpacity style={styles.newSaleBtn} onPress={() => setShowNewSale(true)}>
+          <Text style={styles.newSaleBtnText}>+ Nueva</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Sales List */}
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={COLORS.primary} />
+        </View>
+      ) : (
+        <FlatList
+          data={sales}
+          keyExtractor={(item) => item.id}
+          renderItem={renderSale}
+          contentContainerStyle={styles.list}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>No hay ventas registradas</Text>
+            </View>
+          }
+        />
+      )}
+
+      {/* New Sale Modal */}
+      <Modal visible={showNewSale} animationType="slide" presentationStyle="pageSheet">
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={() => setShowNewSale(false)}>
+              <Text style={styles.modalCancel}>Cancelar</Text>
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>Nueva Venta</Text>
+            <TouchableOpacity onPress={handleCreateSale}>
+              <Text style={styles.modalSave}>Guardar</Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.modalContent}>
+            {/* Selected Items */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Productos ({selectedItems.length})</Text>
+              {selectedItems.map((item) => (
+                <View key={item.productId} style={styles.selectedItem}>
+                  <View style={styles.itemInfo}>
+                    <Text style={styles.itemName}>{item.name}</Text>
+                    <Text style={styles.itemPrice}>{formatCurrency(item.unitPrice)}</Text>
+                  </View>
+                  <View style={styles.itemControls}>
+                    <TouchableOpacity
+                      style={styles.qtyBtn}
+                      onPress={() => updateQuantity(item.productId, item.quantity - 1)}
+                    >
+                      <Text style={styles.qtyBtnText}>-</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.qtyText}>{item.quantity}</Text>
+                    <TouchableOpacity
+                      style={styles.qtyBtn}
+                      onPress={() => updateQuantity(item.productId, item.quantity + 1)}
+                    >
+                      <Text style={styles.qtyBtnText}>+</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.removeBtn}
+                      onPress={() => removeItem(item.productId)}
+                    >
+                      <Text style={styles.removeBtnText}>X</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+            </View>
+
+            {/* Add Products */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Agregar Producto</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                {products.slice(0, 20).map((product) => (
+                  <TouchableOpacity
+                    key={product.id}
+                    style={styles.productChip}
+                    onPress={() => addItem(product)}
+                  >
+                    <Text style={styles.productChipName}>{product.name}</Text>
+                    <Text style={styles.productChipPrice}>{formatCurrency(product.price)}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+
+            {/* Summary */}
+            <View style={styles.summary}>
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Subtotal</Text>
+                <Text style={styles.summaryValue}>{formatCurrency(subtotal)}</Text>
+              </View>
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>IVA ({taxRate}%)</Text>
+                <Text style={styles.summaryValue}>{formatCurrency(taxAmount)}</Text>
+              </View>
+              <View style={[styles.summaryRow, styles.summaryTotal]}>
+                <Text style={styles.totalLabel}>Total</Text>
+                <Text style={styles.totalValue}>{formatCurrency(total)}</Text>
+              </View>
+            </View>
+          </ScrollView>
+        </View>
+      </Modal>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.gray[50],
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.gray[100],
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: COLORS.gray[900],
+  },
+  newSaleBtn: {
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  newSaleBtnText: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  list: {
+    padding: 16,
+  },
+  saleCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  saleHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  saleNumber: {
+    fontSize: 12,
+    fontFamily: 'monospace',
+    color: COLORS.gray[500],
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  statusCompleted: { backgroundColor: COLORS.successLight },
+  statusCancelled: { backgroundColor: COLORS.dangerLight },
+  statusText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: COLORS.gray[700],
+  },
+  saleBody: {
+    marginBottom: 8,
+  },
+  saleSeller: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.gray[900],
+  },
+  saleCustomer: {
+    fontSize: 12,
+    color: COLORS.gray[500],
+  },
+  saleDate: {
+    fontSize: 12,
+    color: COLORS.gray[400],
+    marginTop: 4,
+  },
+  saleFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: COLORS.gray[100],
+    paddingTop: 8,
+  },
+  saleTotal: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: COLORS.gray[900],
+  },
+  saleItems: {
+    fontSize: 12,
+    color: COLORS.gray[500],
+  },
+  emptyContainer: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: 16,
+    color: COLORS.gray[500],
+  },
+  // Modal
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.gray[100],
+  },
+  modalCancel: {
+    fontSize: 16,
+    color: COLORS.gray[500],
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.gray[900],
+  },
+  modalSave: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.primary,
+  },
+  modalContent: {
+    flex: 1,
+    padding: 16,
+  },
+  section: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.gray[700],
+    marginBottom: 12,
+  },
+  selectedItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: COLORS.gray[50],
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 8,
+  },
+  itemInfo: { flex: 1 },
+  itemName: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: COLORS.gray[900],
+  },
+  itemPrice: {
+    fontSize: 12,
+    color: COLORS.gray[500],
+  },
+  itemControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  qtyBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: COLORS.gray[200],
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  qtyBtnText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.gray[700],
+  },
+  qtyText: {
+    fontSize: 14,
+    fontWeight: '600',
+    minWidth: 20,
+    textAlign: 'center',
+  },
+  removeBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: COLORS.dangerLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  removeBtnText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.danger,
+  },
+  productChip: {
+    backgroundColor: COLORS.primaryLight,
+    borderRadius: 12,
+    padding: 12,
+    marginRight: 8,
+    minWidth: 120,
+  },
+  productChipName: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: COLORS.primary,
+    marginBottom: 4,
+  },
+  productChipPrice: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.primary,
+  },
+  summary: {
+    backgroundColor: COLORS.gray[50],
+    borderRadius: 12,
+    padding: 16,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  summaryLabel: {
+    fontSize: 14,
+    color: COLORS.gray[600],
+  },
+  summaryValue: {
+    fontSize: 14,
+    color: COLORS.gray[900],
+  },
+  summaryTotal: {
+    borderTopWidth: 1,
+    borderTopColor: COLORS.gray[200],
+    paddingTop: 8,
+    marginTop: 8,
+  },
+  totalLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.gray[900],
+  },
+  totalValue: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLORS.primary,
+  },
+});
