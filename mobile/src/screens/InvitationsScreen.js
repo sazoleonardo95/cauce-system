@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   ScrollView,
   TextInput,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
 import { formatDate, COLORS } from '../lib/utils';
@@ -26,9 +27,11 @@ export default function InvitationsScreen() {
 
   const isAdminOrManager = user?.role === 'ADMIN' || user?.role === 'MANAGER';
 
-  useEffect(() => {
-    loadInvitations();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadInvitations();
+    }, [])
+  );
 
   const loadInvitations = async () => {
     try {

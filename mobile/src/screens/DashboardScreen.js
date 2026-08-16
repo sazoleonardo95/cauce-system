@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   RefreshControl,
   TouchableOpacity,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
 import { formatCurrency, COLORS } from '../lib/utils';
@@ -16,9 +17,11 @@ export default function DashboardScreen() {
   const [stats, setStats] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    loadStats();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadStats();
+    }, [])
+  );
 
   const loadStats = async () => {
     try {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   Modal,
   ScrollView,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { api } from '../lib/api';
 import { COLORS } from '../lib/utils';
 
@@ -22,9 +23,11 @@ export default function CustomersScreen() {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({ name: '', email: '', phone: '', address: '', taxId: '', notes: '' });
 
-  useEffect(() => {
-    loadCustomers();
-  }, [search]);
+  useFocusEffect(
+    useCallback(() => {
+      loadCustomers();
+    }, [search])
+  );
 
   const loadCustomers = async () => {
     try {

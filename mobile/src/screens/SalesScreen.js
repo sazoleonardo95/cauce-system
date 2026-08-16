@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   ScrollView,
   TextInput,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { api } from '../lib/api';
 import { formatCurrency, formatDate, COLORS } from '../lib/utils';
 
@@ -30,10 +31,11 @@ export default function SalesScreen() {
   const [showCustomerPicker, setShowCustomerPicker] = useState(false);
   const [showWarehousePicker, setShowWarehousePicker] = useState(false);
 
-  useEffect(() => {
-    loadSales();
-    loadData();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadSales();
+    }, [])
+  );
 
   const loadSales = async () => {
     try {
