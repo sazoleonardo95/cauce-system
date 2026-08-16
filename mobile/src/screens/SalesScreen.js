@@ -115,6 +115,10 @@ export default function SalesScreen() {
       Alert.alert('Error', 'Agrega al menos un producto');
       return;
     }
+    if (!selectedWarehouse) {
+      Alert.alert('Error', 'Selecciona una bodega para descontar inventario');
+      return;
+    }
     try {
       await api.createSale({
         customerId: selectedCustomer,
