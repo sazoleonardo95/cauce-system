@@ -17,8 +17,11 @@ import { COLORS } from '../lib/utils';
 export default function InventoryScreen() {
   const [items, setItems] = useState([]);
   const [warehouses, setWarehouses] = useState([]);
+  const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAdjust, setShowAdjust] = useState(false);
+  const [showProductPicker, setShowProductPicker] = useState(false);
+  const [productSearch, setProductSearch] = useState('');
   const [adjustForm, setAdjustForm] = useState({
     productId: '',
     warehouseId: '',
@@ -33,12 +36,14 @@ export default function InventoryScreen() {
 
   const loadData = async () => {
     try {
-      const [inv, wh] = await Promise.all([
+      const [inv, wh, prods] = await Promise.all([
         api.getInventory(),
         api.getWarehouses(),
+        api.getProducts({ limit: 200 }),
       ]);
       setItems(inv);
       setWarehouses(wh);
+      setProducts(prods.products);
     } catch (error) {
       Alert.alert('Error', 'No se pudo cargar el inventario');
     } finally {
@@ -51,7 +56,6 @@ export default function InventoryScreen() {
       Alert.alert('Error', 'Completa todos los campos');
       return;
     }
-
     try {
       await api.adjustStock({
         ...adjustForm,
@@ -65,6 +69,12 @@ export default function InventoryScreen() {
       Alert.alert('Error', error.message);
     }
   };
+
+  const selectedProductName = products.find((p) => p.id === adjustForm.productId)?.name || '';
+
+  const filteredProducts = productSearch
+    ? products.filter((p) => p.name.toLowerCase().includes(productSearch.toLowerCase()))
+    : products;
 
   const totalProducts = items.length;
   const totalItems = items.reduce((sum, i) => sum + i.quantity, 0);
@@ -95,7 +105,7 @@ export default function InventoryScreen() {
           </View>
         </View>
         <View style={styles.itemFooter}>
-          <Text style={styles.warehouseText}>📍 {item.warehouse?.name}</Text>
+          <Text style={styles.warehouseText}>{item.warehouse?.name}</Text>
           <Text style={styles.minStockText}>Min: {item.product?.minStock}</Text>
           {isLow && <View style={styles.alertBadge}><Text style={styles.alertText}>STOCK BAJO</Text></View>}
         </View>
@@ -105,14 +115,12 @@ export default function InventoryScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.adjustBtn} onPress={() => setShowAdjust(true)}>
           <Text style={styles.adjustBtnText}>+ Ajustar</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Stats */}
       <View style={styles.statsRow}>
         <View style={styles.statItem}>
           <Text style={styles.statValue}>{totalProducts}</Text>
@@ -130,7 +138,6 @@ export default function InventoryScreen() {
         </View>
       </View>
 
-      {/* Inventory List */}
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={COLORS.primary} />
@@ -163,22 +170,27 @@ export default function InventoryScreen() {
           </View>
 
           <ScrollView style={styles.modalContent}>
+            {/* Product Picker */}
+            <View style={styles.formGroup}>
+              <Text style={styles.formLabel}>Producto *</Text>
+              <TouchableOpacity style={styles.pickerBtn} onPress={() => setShowProductPicker(true)}>
+                <Text style={[styles.pickerText, !adjustForm.productId && styles.pickerPlaceholder]}>
+                  {selectedProductName || 'Seleccionar producto...'}
+                </Text>
+                <Text style={styles.pickerArrow}>&#8250;</Text>
+              </TouchableOpacity>
+            </View>
+
             <View style={styles.formGroup}>
               <Text style={styles.formLabel}>Tipo de movimiento</Text>
               <View style={styles.typeRow}>
                 {['ENTRY', 'EXIT', 'ADJUSTMENT'].map((type) => (
                   <TouchableOpacity
                     key={type}
-                    style={[
-                      styles.typeBtn,
-                      adjustForm.type === type && styles.typeBtnActive,
-                    ]}
+                    style={[styles.typeBtn, adjustForm.type === type && styles.typeBtnActive]}
                     onPress={() => setAdjustForm({ ...adjustForm, type })}
                   >
-                    <Text style={[
-                      styles.typeBtnText,
-                      adjustForm.type === type && styles.typeBtnTextActive,
-                    ]}>
+                    <Text style={[styles.typeBtnText, adjustForm.type === type && styles.typeBtnTextActive]}>
                       {type === 'ENTRY' ? 'Entrada' : type === 'EXIT' ? 'Salida' : 'Ajuste'}
                     </Text>
                   </TouchableOpacity>
@@ -187,21 +199,15 @@ export default function InventoryScreen() {
             </View>
 
             <View style={styles.formGroup}>
-              <Text style={styles.formLabel}>Bodega</Text>
+              <Text style={styles.formLabel}>Bodega *</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 {warehouses.map((wh) => (
                   <TouchableOpacity
                     key={wh.id}
-                    style={[
-                      styles.warehouseBtn,
-                      adjustForm.warehouseId === wh.id && styles.warehouseBtnActive,
-                    ]}
+                    style={[styles.warehouseBtn, adjustForm.warehouseId === wh.id && styles.warehouseBtnActive]}
                     onPress={() => setAdjustForm({ ...adjustForm, warehouseId: wh.id })}
                   >
-                    <Text style={[
-                      styles.warehouseBtnText,
-                      adjustForm.warehouseId === wh.id && styles.warehouseBtnTextActive,
-                    ]}>
+                    <Text style={[styles.warehouseBtnText, adjustForm.warehouseId === wh.id && styles.warehouseBtnTextActive]}>
                       {wh.name}
                     </Text>
                   </TouchableOpacity>
@@ -210,7 +216,7 @@ export default function InventoryScreen() {
             </View>
 
             <View style={styles.formGroup}>
-              <Text style={styles.formLabel}>Cantidad</Text>
+              <Text style={styles.formLabel}>Cantidad *</Text>
               <TextInput
                 style={styles.input}
                 placeholder="0"
@@ -234,15 +240,49 @@ export default function InventoryScreen() {
           </ScrollView>
         </View>
       </Modal>
+
+      {/* Product Picker Modal */}
+      <Modal visible={showProductPicker} animationType="slide" presentationStyle="pageSheet">
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={() => setShowProductPicker(false)}>
+              <Text style={styles.modalCancel}>Cancelar</Text>
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>Seleccionar Producto</Text>
+            <View style={{ width: 60 }} />
+          </View>
+          <View style={styles.searchContainer}>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Buscar producto..."
+              placeholderTextColor={COLORS.gray[400]}
+              value={productSearch}
+              onChangeText={setProductSearch}
+            />
+          </View>
+          <FlatList
+            data={filteredProducts}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={[styles.pickerItem, adjustForm.productId === item.id && styles.pickerItemActive]}
+                onPress={() => { setAdjustForm({ ...adjustForm, productId: item.id }); setShowProductPicker(false); setProductSearch(''); }}
+              >
+                <Text style={[styles.pickerItemText, adjustForm.productId === item.id && styles.pickerItemTextActive]}>
+                  {item.name}
+                </Text>
+                <Text style={styles.pickerItemSub}>SKU: {item.sku}</Text>
+              </TouchableOpacity>
+            )}
+          />
+        </View>
+      </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.gray[50],
-  },
+  container: { flex: 1, backgroundColor: COLORS.gray[50] },
   header: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
@@ -257,45 +297,15 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 8,
   },
-  adjustBtnText: {
-    color: '#fff',
-    fontWeight: '600',
-  },
-  statsRow: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
-    padding: 16,
-    marginBottom: 12,
-  },
-  statItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: COLORS.gray[900],
-  },
-  statValueDanger: {
-    color: COLORS.danger,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: COLORS.gray[500],
-    marginTop: 4,
-  },
-  statDivider: {
-    width: 1,
-    backgroundColor: COLORS.gray[200],
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  list: {
-    padding: 16,
-  },
+  adjustBtnText: { color: '#fff', fontWeight: '600' },
+  statsRow: { flexDirection: 'row', backgroundColor: '#fff', padding: 16, marginBottom: 12 },
+  statItem: { flex: 1, alignItems: 'center' },
+  statValue: { fontSize: 24, fontWeight: 'bold', color: COLORS.gray[900] },
+  statValueDanger: { color: COLORS.danger },
+  statLabel: { fontSize: 12, color: COLORS.gray[500], marginTop: 4 },
+  statDivider: { width: 1, backgroundColor: COLORS.gray[200] },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  list: { padding: 16 },
   itemCard: {
     backgroundColor: '#fff',
     borderRadius: 12,
@@ -307,10 +317,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 1,
   },
-  itemHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
+  itemHeader: { flexDirection: 'row', alignItems: 'center' },
   itemIcon: {
     width: 44,
     height: 44,
@@ -320,34 +327,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 12,
   },
-  itemIconText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.primary,
-  },
-  itemInfo: {
-    flex: 1,
-  },
-  itemName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.gray[900],
-  },
-  itemSku: {
-    fontSize: 12,
-    color: COLORS.gray[500],
-  },
-  stockBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
+  itemIconText: { fontSize: 18, fontWeight: 'bold', color: COLORS.primary },
+  itemInfo: { flex: 1 },
+  itemName: { fontSize: 14, fontWeight: '600', color: COLORS.gray[900] },
+  itemSku: { fontSize: 12, color: COLORS.gray[500] },
+  stockBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
   stockBadgeNormal: { backgroundColor: COLORS.successLight },
   stockBadgeLow: { backgroundColor: COLORS.dangerLight },
-  stockText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
+  stockText: { fontSize: 16, fontWeight: 'bold' },
   stockTextNormal: { color: COLORS.success },
   stockTextLow: { color: COLORS.danger },
   itemFooter: {
@@ -359,14 +346,8 @@ const styles = StyleSheet.create({
     borderTopColor: COLORS.gray[100],
     gap: 8,
   },
-  warehouseText: {
-    fontSize: 12,
-    color: COLORS.gray[500],
-  },
-  minStockText: {
-    fontSize: 12,
-    color: COLORS.gray[400],
-  },
+  warehouseText: { fontSize: 12, color: COLORS.gray[500] },
+  minStockText: { fontSize: 12, color: COLORS.gray[400] },
   alertBadge: {
     backgroundColor: COLORS.danger,
     paddingHorizontal: 6,
@@ -374,24 +355,11 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     marginLeft: 'auto',
   },
-  alertText: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  emptyContainer: {
-    padding: 40,
-    alignItems: 'center',
-  },
-  emptyText: {
-    fontSize: 16,
-    color: COLORS.gray[500],
-  },
+  alertText: { fontSize: 9, fontWeight: '700', color: '#fff' },
+  emptyContainer: { padding: 40, alignItems: 'center' },
+  emptyText: { fontSize: 16, color: COLORS.gray[500] },
   // Modal
-  modalContainer: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
+  modalContainer: { flex: 1, backgroundColor: '#fff' },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -400,37 +368,27 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.gray[100],
   },
-  modalCancel: {
-    fontSize: 16,
-    color: COLORS.gray[500],
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: COLORS.gray[900],
-  },
-  modalSave: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.primary,
-  },
-  modalContent: {
-    flex: 1,
-    padding: 16,
-  },
-  formGroup: {
-    marginBottom: 24,
-  },
-  formLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.gray[700],
-    marginBottom: 12,
-  },
-  typeRow: {
+  modalCancel: { fontSize: 16, color: COLORS.gray[500] },
+  modalTitle: { fontSize: 18, fontWeight: '600', color: COLORS.gray[900] },
+  modalSave: { fontSize: 16, fontWeight: '600', color: COLORS.primary },
+  modalContent: { flex: 1, padding: 16 },
+  formGroup: { marginBottom: 24 },
+  formLabel: { fontSize: 14, fontWeight: '600', color: COLORS.gray[700], marginBottom: 12 },
+  pickerBtn: {
     flexDirection: 'row',
-    gap: 8,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: COLORS.gray[50],
+    borderWidth: 1,
+    borderColor: COLORS.gray[200],
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
   },
+  pickerText: { fontSize: 16, color: COLORS.gray[900] },
+  pickerPlaceholder: { color: COLORS.gray[400] },
+  pickerArrow: { fontSize: 20, color: COLORS.gray[400] },
+  typeRow: { flexDirection: 'row', gap: 8 },
   typeBtn: {
     flex: 1,
     paddingVertical: 12,
@@ -438,17 +396,9 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.gray[100],
     alignItems: 'center',
   },
-  typeBtnActive: {
-    backgroundColor: COLORS.primary,
-  },
-  typeBtnText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: COLORS.gray[600],
-  },
-  typeBtnTextActive: {
-    color: '#fff',
-  },
+  typeBtnActive: { backgroundColor: COLORS.primary },
+  typeBtnText: { fontSize: 14, fontWeight: '500', color: COLORS.gray[600] },
+  typeBtnTextActive: { color: '#fff' },
   warehouseBtn: {
     paddingHorizontal: 16,
     paddingVertical: 10,
@@ -456,16 +406,9 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.gray[100],
     marginRight: 8,
   },
-  warehouseBtnActive: {
-    backgroundColor: COLORS.primary,
-  },
-  warehouseBtnText: {
-    fontSize: 14,
-    color: COLORS.gray[600],
-  },
-  warehouseBtnTextActive: {
-    color: '#fff',
-  },
+  warehouseBtnActive: { backgroundColor: COLORS.primary },
+  warehouseBtnText: { fontSize: 14, color: COLORS.gray[600] },
+  warehouseBtnTextActive: { color: '#fff' },
   input: {
     backgroundColor: COLORS.gray[50],
     borderWidth: 1,
@@ -476,4 +419,24 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: COLORS.gray[900],
   },
+  searchContainer: { padding: 16, borderBottomWidth: 1, borderBottomColor: COLORS.gray[100] },
+  searchInput: {
+    backgroundColor: COLORS.gray[50],
+    borderWidth: 1,
+    borderColor: COLORS.gray[200],
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    fontSize: 16,
+    color: COLORS.gray[900],
+  },
+  pickerItem: {
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.gray[100],
+  },
+  pickerItemActive: { backgroundColor: COLORS.primaryLight },
+  pickerItemText: { fontSize: 16, color: COLORS.gray[900] },
+  pickerItemTextActive: { color: COLORS.primary, fontWeight: '600' },
+  pickerItemSub: { fontSize: 13, color: COLORS.gray[500], marginTop: 4 },
 });

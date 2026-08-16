@@ -26,7 +26,7 @@ const productSchema = z.object({
   barcode: z.string().optional(),
   description: z.string().optional(),
   price: z.number().positive('Precio debe ser positivo'),
-  cost: z.number().positive().optional(),
+  cost: z.number().min(0).optional(),
   category: z.string().optional(),
   unit: z.string().default('unit'),
   minStock: z.number().int().min(0).default(0),

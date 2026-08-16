@@ -8,6 +8,6 @@ router.use(authenticate);
 
 router.get('/', getInventory);
 router.get('/movements', getStockMovements);
-router.post('/adjust', authorize('ADMIN', 'MANAGER', 'WAREHOUSE'), validate(stockMovementSchema), adjustStock);
+router.post('/adjust', authorize('ADMIN', 'MANAGER', 'SELLER', 'WAREHOUSE'), validate(stockMovementSchema), adjustStock);
 
 module.exports = router;

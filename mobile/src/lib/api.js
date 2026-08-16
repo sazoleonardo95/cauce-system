@@ -33,18 +33,31 @@ class ApiClient {
       headers['Authorization'] = `Bearer ${this.token}`;
     }
 
-    const res = await fetch(`${API_URL}${endpoint}`, {
-      ...options,
-      headers,
-    });
+    try {
+      const res = await fetch(`${API_URL}${endpoint}`, {
+        ...options,
+        headers,
+      });
 
-    const data = await res.json();
+      const text = await res.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        throw new Error('Error del servidor');
+      }
 
-    if (!res.ok) {
-      throw new Error(data.error || 'Error en la peticion');
+      if (!res.ok) {
+        throw new Error(data.error || 'Error en la peticion');
+      }
+
+      return data;
+    } catch (error) {
+      if (error.message === 'Network request failed') {
+        throw new Error('Sin conexion. Verifica tu internet.');
+      }
+      throw error;
     }
-
-    return data;
   }
 
   get(endpoint) {
@@ -72,6 +85,10 @@ class ApiClient {
     });
   }
 
+  delete(endpoint) {
+    return this.request(endpoint, { method: 'DELETE' });
+  }
+
   // Auth
   login(email, password) {
     return this.post('/auth/login', { email, password });
@@ -96,9 +113,29 @@ class ApiClient {
     return this.get(`/products?${query}`);
   }
 
+  createProduct(data) {
+    return this.post('/products', data);
+  }
+
+  updateProduct(id, data) {
+    return this.put(`/products/${id}`, data);
+  }
+
+  deleteProduct(id) {
+    return this.delete(`/products/${id}`);
+  }
+
+  getCategories() {
+    return this.get('/products/categories');
+  }
+
   // Warehouses
   getWarehouses() {
     return this.get('/warehouses');
+  }
+
+  createWarehouse(data) {
+    return this.post('/warehouses', data);
   }
 
   // Inventory
@@ -111,6 +148,11 @@ class ApiClient {
     return this.post('/inventory/adjust', data);
   }
 
+  getStockMovements(params) {
+    const query = new URLSearchParams(params || {}).toString();
+    return this.get(`/inventory/movements?${query}`);
+  }
+
   // Sales
   getSales(params) {
     const query = new URLSearchParams(params || {}).toString();
@@ -121,10 +163,30 @@ class ApiClient {
     return this.post('/sales', data);
   }
 
+  getSale(id) {
+    return this.get(`/sales/${id}`);
+  }
+
+  cancelSale(id) {
+    return this.patch(`/sales/${id}/cancel`);
+  }
+
   // Customers
   getCustomers(params) {
     const query = new URLSearchParams(params || {}).toString();
     return this.get(`/customers?${query}`);
+  }
+
+  createCustomer(data) {
+    return this.post('/customers', data);
+  }
+
+  updateCustomer(id, data) {
+    return this.put(`/customers/${id}`, data);
+  }
+
+  deleteCustomer(id) {
+    return this.delete(`/customers/${id}`);
   }
 }
 

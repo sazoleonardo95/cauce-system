@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, TouchableOpacity, Alert } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -13,9 +13,55 @@ import DashboardScreen from './src/screens/DashboardScreen';
 import ProductsScreen from './src/screens/ProductsScreen';
 import SalesScreen from './src/screens/SalesScreen';
 import InventoryScreen from './src/screens/InventoryScreen';
+import CustomersScreen from './src/screens/CustomersScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
+
+function ProfileScreen() {
+  const { user, logout } = useAuth();
+
+  const handleLogout = () => {
+    Alert.alert('Cerrar sesion', 'Estas seguro?', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Cerrar sesion', style: 'destructive', onPress: logout },
+    ]);
+  };
+
+  return (
+    <View style={{ flex: 1, backgroundColor: COLORS.gray[50], padding: 16 }}>
+      <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 24, alignItems: 'center', marginBottom: 24 }}>
+        <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: COLORS.primaryLight, justifyContent: 'center', alignItems: 'center', marginBottom: 16 }}>
+          <Text style={{ fontSize: 28, fontWeight: 'bold', color: COLORS.primary }}>
+            {user?.firstName?.[0]}{user?.lastName?.[0]}
+          </Text>
+        </View>
+        <Text style={{ fontSize: 20, fontWeight: 'bold', color: COLORS.gray[900] }}>
+          {user?.firstName} {user?.lastName}
+        </Text>
+        <Text style={{ fontSize: 14, color: COLORS.gray[500], marginTop: 4 }}>{user?.email}</Text>
+        <View style={{ marginTop: 8, backgroundColor: COLORS.primaryLight, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12 }}>
+          <Text style={{ fontSize: 12, fontWeight: '600', color: COLORS.primary, textTransform: 'uppercase' }}>{user?.role}</Text>
+        </View>
+      </View>
+
+      <TouchableOpacity
+        style={{ backgroundColor: COLORS.danger, borderRadius: 12, padding: 16, alignItems: 'center' }}
+        onPress={handleLogout}
+      >
+        <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>Cerrar sesion</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+function TabIcon({ icon, color }) {
+  return (
+    <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+      <Text style={{ fontSize: 20 }}>{icon}</Text>
+    </View>
+  );
+}
 
 function AppTabs() {
   return (
@@ -41,47 +87,45 @@ function AppTabs() {
         name="Dashboard"
         component={DashboardScreen}
         options={{
-          tabBarIcon: ({ color, size }) => (
-            <TabIcon icon="🏠" color={color} />
-          ),
+          tabBarIcon: ({ color }) => <TabIcon icon="🏠" color={color} />,
         }}
       />
       <Tab.Screen
         name="Productos"
         component={ProductsScreen}
         options={{
-          tabBarIcon: ({ color, size }) => (
-            <TabIcon icon="📦" color={color} />
-          ),
+          tabBarIcon: ({ color }) => <TabIcon icon="📦" color={color} />,
         }}
       />
       <Tab.Screen
         name="Ventas"
         component={SalesScreen}
         options={{
-          tabBarIcon: ({ color, size }) => (
-            <TabIcon icon="💰" color={color} />
-          ),
+          tabBarIcon: ({ color }) => <TabIcon icon="💰" color={color} />,
         }}
       />
       <Tab.Screen
         name="Inventario"
         component={InventoryScreen}
         options={{
-          tabBarIcon: ({ color, size }) => (
-            <TabIcon icon="📊" color={color} />
-          ),
+          tabBarIcon: ({ color }) => <TabIcon icon="📊" color={color} />,
+        }}
+      />
+      <Tab.Screen
+        name="Clientes"
+        component={CustomersScreen}
+        options={{
+          tabBarIcon: ({ color }) => <TabIcon icon="👥" color={color} />,
+        }}
+      />
+      <Tab.Screen
+        name="Perfil"
+        component={ProfileScreen}
+        options={{
+          tabBarIcon: ({ color }) => <TabIcon icon="👤" color={color} />,
         }}
       />
     </Tab.Navigator>
-  );
-}
-
-function TabIcon({ icon }) {
-  return (
-    <View style={{ alignItems: 'center', justifyContent: 'center' }}>
-      <Text style={{ fontSize: 20 }}>{icon}</Text>
-    </View>
   );
 }
 

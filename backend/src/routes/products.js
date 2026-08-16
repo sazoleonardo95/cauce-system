@@ -9,8 +9,8 @@ router.use(authenticate);
 router.get('/', getProducts);
 router.get('/categories', getCategories);
 router.get('/:id', getProduct);
-router.post('/', authorize('ADMIN', 'MANAGER', 'WAREHOUSE'), validate(productSchema), createProduct);
-router.put('/:id', authorize('ADMIN', 'MANAGER', 'WAREHOUSE'), updateProduct);
+router.post('/', authorize('ADMIN', 'MANAGER', 'SELLER', 'WAREHOUSE'), validate(productSchema), createProduct);
+router.put('/:id', authorize('ADMIN', 'MANAGER', 'SELLER', 'WAREHOUSE'), updateProduct);
 router.delete('/:id', authorize('ADMIN', 'MANAGER'), deleteProduct);
 
 module.exports = router;
