@@ -3,15 +3,23 @@ const prisma = require('../config/database');
 const getDashboardStats = async (req, res, next) => {
   try {
     const companyId = req.user.companyId;
+    const userId = req.user.id;
+    const userRole = req.user.role;
     const now = new Date();
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const startOfWeek = new Date(now);
     startOfWeek.setDate(now.getDate() - now.getDay());
 
-    const todayWhere = { companyId, saleDate: { gte: startOfDay }, status: { not: 'CANCELLED' } };
-    const monthWhere = { companyId, saleDate: { gte: startOfMonth }, status: { not: 'CANCELLED' } };
-    const weekWhere = { companyId, saleDate: { gte: startOfWeek }, status: { not: 'CANCELLED' } };
+    const isSeller = userRole === 'SELLER';
+    const isWarehouse = userRole === 'WAREHOUSE';
+    const isAdminOrManager = userRole === 'ADMIN' || userRole === 'MANAGER';
+
+    const sellerFilter = isSeller ? { sellerId: userId } : {};
+
+    const todayWhere = { companyId, saleDate: { gte: startOfDay }, status: { not: 'CANCELLED' }, ...sellerFilter };
+    const monthWhere = { companyId, saleDate: { gte: startOfMonth }, status: { not: 'CANCELLED' }, ...sellerFilter };
+    const weekWhere = { companyId, saleDate: { gte: startOfWeek }, status: { not: 'CANCELLED' }, ...sellerFilter };
 
     const [
       todaySales,
@@ -46,31 +54,42 @@ const getDashboardStats = async (req, res, next) => {
           product: { companyId, isActive: true },
           warehouse: { companyId, isActive: true },
         },
-        include: { product: { select: { minStock: true, name: true } } },
+        include: { product: { select: { minStock: true, name: true } }, warehouse: { select: { name: true } } },
       }),
-      prisma.commission.aggregate({
-        where: { seller: { companyId }, isPaid: false },
-        _sum: { amount: true },
-      }),
+      isSeller
+        ? prisma.commission.aggregate({
+            where: { sellerId: userId, isPaid: false },
+            _sum: { amount: true },
+          })
+        : prisma.commission.aggregate({
+            where: { seller: { companyId }, isPaid: false },
+            _sum: { amount: true },
+          }),
     ]);
 
     const lowStock = lowStockItems.filter((i) => i.quantity <= i.product.minStock);
 
-    const topSellers = await prisma.user.findMany({
-      where: { companyId, isActive: true, role: { in: ['SELLER', 'MANAGER'] } },
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        avatar: true,
-        _count: { select: { sales: { where: { status: { not: 'CANCELLED' }, saleDate: { gte: startOfMonth } } } } },
-      },
-      orderBy: { sales: { _count: 'desc' } },
-      take: 5,
-    });
+    let topSellers;
+    if (isAdminOrManager) {
+      topSellers = await prisma.user.findMany({
+        where: { companyId, isActive: true, role: { in: ['SELLER', 'MANAGER'] } },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          avatar: true,
+          _count: { select: { sales: { where: { status: { not: 'CANCELLED' }, saleDate: { gte: startOfMonth } } } } },
+        },
+        orderBy: { sales: { _count: 'desc' } },
+        take: 5,
+      });
+    } else {
+      topSellers = [];
+    }
 
+    const recentSalesWhere = { companyId, status: { not: 'CANCELLED' }, ...sellerFilter };
     const recentSales = await prisma.sale.findMany({
-      where: { companyId, status: { not: 'CANCELLED' } },
+      where: recentSalesWhere,
       include: {
         seller: { select: { firstName: true, lastName: true } },
         customer: { select: { name: true } },
@@ -79,9 +98,10 @@ const getDashboardStats = async (req, res, next) => {
       take: 10,
     });
 
+    const salesByDayWhere = { ...monthWhere };
     const salesByDay = await prisma.sale.groupBy({
       by: ['saleDate'],
-      where: monthWhere,
+      where: salesByDayWhere,
       _sum: { total: true },
       _count: true,
     });
@@ -94,7 +114,26 @@ const getDashboardStats = async (req, res, next) => {
       dailyData[day].count += s._count;
     });
 
+    let warehouseStats = [];
+    if (isWarehouse || isAdminOrManager) {
+      const warehouseItems = await prisma.warehouse.findMany({
+        where: { companyId, isActive: true },
+        include: {
+          inventoryItems: {
+            select: { quantity: true },
+          },
+        },
+      });
+      warehouseStats = warehouseItems.map((w) => ({
+        name: w.name,
+        code: w.code,
+        totalItems: w.inventoryItems.reduce((sum, i) => sum + i.quantity, 0),
+        totalProducts: w.inventoryItems.length,
+      }));
+    }
+
     res.json({
+      role: userRole,
       today: {
         sales: todaySales._sum.total || 0,
         count: todaySales._count,
@@ -121,7 +160,9 @@ const getDashboardStats = async (req, res, next) => {
         productName: i.product.name,
         quantity: i.quantity,
         minStock: i.product.minStock,
+        warehouse: i.warehouse?.name || '',
       })),
+      warehouseStats,
     });
   } catch (error) {
     next(error);

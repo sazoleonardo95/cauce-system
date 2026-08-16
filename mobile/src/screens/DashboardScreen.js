@@ -5,7 +5,6 @@ import {
   ScrollView,
   StyleSheet,
   RefreshControl,
-  TouchableOpacity,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
@@ -46,44 +45,26 @@ export default function DashboardScreen() {
     );
   }
 
-  return (
-    <ScrollView
-      style={styles.container}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-    >
-      {/* Header */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.greeting}>Hola, {user?.firstName}</Text>
-          <Text style={styles.subtitle}>Resumen de tu negocio</Text>
-        </View>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>
-            {user?.firstName?.[0]}{user?.lastName?.[0]}
-          </Text>
-        </View>
-      </View>
+  const role = stats.role;
 
-      {/* Stats Cards */}
+  const renderAdminManager = () => (
+    <>
       <View style={styles.statsGrid}>
         <View style={[styles.statCard, { backgroundColor: COLORS.primaryLight }]}>
           <Text style={styles.statLabel}>Ventas Hoy</Text>
           <Text style={[styles.statValue, { color: COLORS.primary }]}>{formatCurrency(stats.today.sales)}</Text>
           <Text style={styles.statCount}>{stats.today.count} transacciones</Text>
         </View>
-
         <View style={[styles.statCard, { backgroundColor: COLORS.successLight }]}>
           <Text style={styles.statLabel}>Ventas Mes</Text>
           <Text style={[styles.statValue, { color: COLORS.success }]}>{formatCurrency(stats.month.sales)}</Text>
           <Text style={styles.statCount}>{stats.month.count} transacciones</Text>
         </View>
-
         <View style={[styles.statCard, { backgroundColor: COLORS.warningLight }]}>
           <Text style={styles.statLabel}>Productos</Text>
           <Text style={[styles.statValue, { color: COLORS.warning }]}>{stats.totals.products}</Text>
           <Text style={styles.statCount}>{stats.totals.lowStockCount} stock bajo</Text>
         </View>
-
         <View style={[styles.statCard, { backgroundColor: '#F3E8FF' }]}>
           <Text style={styles.statLabel}>Vendedores</Text>
           <Text style={[styles.statValue, { color: '#9333EA' }]}>{stats.totals.sellers}</Text>
@@ -91,32 +72,32 @@ export default function DashboardScreen() {
         </View>
       </View>
 
-      {/* Top Sellers */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Top Vendedores</Text>
-        <View style={styles.card}>
-          {stats.topSellers.map((seller, index) => (
-            <View key={seller.id} style={styles.sellerItem}>
-              <View style={[
-                styles.rankBadge,
-                index === 0 && styles.rankGold,
-                index === 1 && styles.rankSilver,
-                index === 2 && styles.rankBronze,
-              ]}>
-                <Text style={styles.rankText}>{index + 1}</Text>
+      {stats.topSellers.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Top Vendedores</Text>
+          <View style={styles.card}>
+            {stats.topSellers.map((seller, index) => (
+              <View key={seller.id} style={styles.sellerItem}>
+                <View style={[
+                  styles.rankBadge,
+                  index === 0 && styles.rankGold,
+                  index === 1 && styles.rankSilver,
+                  index === 2 && styles.rankBronze,
+                ]}>
+                  <Text style={styles.rankText}>{index + 1}</Text>
+                </View>
+                <View style={styles.sellerInfo}>
+                  <Text style={styles.sellerName}>{seller.firstName} {seller.lastName}</Text>
+                  <Text style={styles.sellerCount}>{seller._count.sales} ventas</Text>
+                </View>
               </View>
-              <View style={styles.sellerInfo}>
-                <Text style={styles.sellerName}>{seller.firstName} {seller.lastName}</Text>
-                <Text style={styles.sellerCount}>{seller._count.sales} ventas</Text>
-              </View>
-            </View>
-          ))}
+            ))}
+          </View>
         </View>
-      </View>
+      )}
 
-      {/* Recent Sales */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Ventas Recientes</Text>
+        <Text style={styles.sectionTitle}>Ultimas Ventas</Text>
         <View style={styles.card}>
           {stats.recentSales.slice(0, 5).map((sale) => (
             <View key={sale.id} style={styles.saleItem}>
@@ -131,7 +112,7 @@ export default function DashboardScreen() {
                   sale.status === 'COMPLETED' && styles.statusCompleted,
                   sale.status === 'CANCELLED' && styles.statusCancelled,
                 ]}>
-                  <Text style={styles.statusText}>{sale.status === 'COMPLETED' ? 'Completada' : sale.status === 'CANCELLED' ? 'Cancelada' : sale.status === 'PENDING' ? 'Pendiente' : sale.status}</Text>
+                  <Text style={styles.statusText}>{sale.status === 'COMPLETED' ? 'Completada' : sale.status === 'CANCELLED' ? 'Cancelada' : 'Pendiente'}</Text>
                 </View>
               </View>
             </View>
@@ -139,22 +120,194 @@ export default function DashboardScreen() {
         </View>
       </View>
 
-      {/* Low Stock Alert */}
       {stats.lowStockItems.length > 0 && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Stock Bajo</Text>
           <View style={styles.card}>
             {stats.lowStockItems.slice(0, 5).map((item, index) => (
               <View key={index} style={styles.stockItem}>
-                <Text style={styles.stockName}>{item.productName}</Text>
+                <View>
+                  <Text style={styles.stockName}>{item.productName}</Text>
+                  {item.warehouse ? <Text style={styles.stockWarehouse}>{item.warehouse}</Text> : null}
+                </View>
                 <View style={styles.stockBadge}>
-                  <Text style={styles.stockText}>{item.quantity} unidades</Text>
+                  <Text style={styles.stockText}>{item.quantity} uds</Text>
                 </View>
               </View>
             ))}
           </View>
         </View>
       )}
+    </>
+  );
+
+  const renderSeller = () => (
+    <>
+      <View style={styles.statsGrid}>
+        <View style={[styles.statCard, { backgroundColor: COLORS.primaryLight }]}>
+          <Text style={styles.statLabel}>Mis Ventas Hoy</Text>
+          <Text style={[styles.statValue, { color: COLORS.primary }]}>{formatCurrency(stats.today.sales)}</Text>
+          <Text style={styles.statCount}>{stats.today.count} ventas</Text>
+        </View>
+        <View style={[styles.statCard, { backgroundColor: COLORS.successLight }]}>
+          <Text style={styles.statLabel}>Mis Ventas Mes</Text>
+          <Text style={[styles.statValue, { color: COLORS.success }]}>{formatCurrency(stats.month.sales)}</Text>
+          <Text style={styles.statCount}>{stats.month.count} ventas</Text>
+        </View>
+        <View style={[styles.statCard, { backgroundColor: COLORS.warningLight }]}>
+          <Text style={styles.statLabel}>Esta Semana</Text>
+          <Text style={[styles.statValue, { color: COLORS.warning }]}>{formatCurrency(stats.week.sales)}</Text>
+          <Text style={styles.statCount}>{stats.week.count} ventas</Text>
+        </View>
+        <View style={[styles.statCard, { backgroundColor: '#F3E8FF' }]}>
+          <Text style={styles.statLabel}>Comisiones</Text>
+          <Text style={[styles.statValue, { color: '#9333EA' }]}>{formatCurrency(stats.totals.pendingCommissions)}</Text>
+          <Text style={styles.statCount}>pendientes</Text>
+        </View>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Mis Ventas Recientes</Text>
+        <View style={styles.card}>
+          {stats.recentSales.length === 0 ? (
+            <Text style={styles.emptyText}>No tienes ventas registradas</Text>
+          ) : (
+            stats.recentSales.slice(0, 5).map((sale) => (
+              <View key={sale.id} style={styles.saleItem}>
+                <View style={styles.saleInfo}>
+                  <Text style={styles.saleCustomer}>{sale.customer?.name || 'Sin cliente'}</Text>
+                  <Text style={styles.saleDate}>{new Date(sale.saleDate).toLocaleDateString('es-CO')}</Text>
+                </View>
+                <View style={styles.saleRight}>
+                  <Text style={styles.saleTotal}>{formatCurrency(sale.total)}</Text>
+                  <View style={[
+                    styles.statusBadge,
+                    sale.status === 'COMPLETED' && styles.statusCompleted,
+                    sale.status === 'CANCELLED' && styles.statusCancelled,
+                  ]}>
+                    <Text style={styles.statusText}>{sale.status === 'COMPLETED' ? 'Completada' : sale.status === 'CANCELLED' ? 'Cancelada' : 'Pendiente'}</Text>
+                  </View>
+                </View>
+              </View>
+            ))
+          )}
+        </View>
+      </View>
+    </>
+  );
+
+  const renderWarehouse = () => (
+    <>
+      <View style={styles.statsGrid}>
+        <View style={[styles.statCard, { backgroundColor: COLORS.primaryLight }]}>
+          <Text style={styles.statLabel}>Total Productos</Text>
+          <Text style={[styles.statValue, { color: COLORS.primary }]}>{stats.totals.products}</Text>
+          <Text style={styles.statCount}>en inventario</Text>
+        </View>
+        <View style={[styles.statCard, { backgroundColor: COLORS.dangerLight }]}>
+          <Text style={styles.statLabel}>Stock Bajo</Text>
+          <Text style={[styles.statValue, { color: COLORS.danger }]}>{stats.totals.lowStockCount}</Text>
+          <Text style={styles.statCount}>productos</Text>
+        </View>
+        <View style={[styles.statCard, { backgroundColor: COLORS.warningLight }]}>
+          <Text style={styles.statLabel}>Bodegas</Text>
+          <Text style={[styles.statValue, { color: COLORS.warning }]}>{stats.warehouseStats.length}</Text>
+          <Text style={styles.statCount}>activas</Text>
+        </View>
+        <View style={[styles.statCard, { backgroundColor: COLORS.successLight }]}>
+          <Text style={styles.statLabel}>Ventas Hoy</Text>
+          <Text style={[styles.statValue, { color: COLORS.success }]}>{formatCurrency(stats.today.sales)}</Text>
+          <Text style={styles.statCount}>{stats.today.count} transacciones</Text>
+        </View>
+      </View>
+
+      {stats.warehouseStats.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Mis Bodegas</Text>
+          <View style={styles.card}>
+            {stats.warehouseStats.map((wh, index) => (
+              <View key={index} style={styles.saleItem}>
+                <View style={styles.saleInfo}>
+                  <Text style={styles.sellerName}>{wh.name}</Text>
+                  <Text style={styles.sellerCount}>{wh.totalProducts} productos</Text>
+                </View>
+                <View style={styles.saleRight}>
+                  <Text style={styles.saleTotal}>{wh.totalItems} uds</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        </View>
+      )}
+
+      {stats.lowStockItems.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Stock Bajo</Text>
+          <View style={styles.card}>
+            {stats.lowStockItems.slice(0, 10).map((item, index) => (
+              <View key={index} style={styles.stockItem}>
+                <View>
+                  <Text style={styles.stockName}>{item.productName}</Text>
+                  {item.warehouse ? <Text style={styles.stockWarehouse}>{item.warehouse}</Text> : null}
+                </View>
+                <View style={styles.stockBadge}>
+                  <Text style={styles.stockText}>{item.quantity} uds</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        </View>
+      )}
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Ventas Recientes</Text>
+        <View style={styles.card}>
+          {stats.recentSales.slice(0, 5).map((sale) => (
+            <View key={sale.id} style={styles.saleItem}>
+              <View style={styles.saleInfo}>
+                <Text style={styles.saleSeller}>{sale.seller?.firstName} {sale.seller?.lastName}</Text>
+                <Text style={styles.saleCustomer}>{sale.customer?.name || 'Sin cliente'}</Text>
+              </View>
+              <View style={styles.saleRight}>
+                <Text style={styles.saleTotal}>{formatCurrency(sale.total)}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+      </View>
+    </>
+  );
+
+  const getSubtitle = () => {
+    switch (role) {
+      case 'ADMIN': return 'Panel de administracion';
+      case 'MANAGER': return 'Panel de gerencia';
+      case 'SELLER': return 'Tus estadisticas de ventas';
+      case 'WAREHOUSE': return 'Gestion de inventario';
+      default: return 'Resumen';
+    }
+  };
+
+  return (
+    <ScrollView
+      style={styles.container}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+    >
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.greeting}>Hola, {user?.firstName}</Text>
+          <Text style={styles.subtitle}>{getSubtitle()}</Text>
+        </View>
+        <View style={styles.avatar}>
+          <Text style={styles.avatarText}>
+            {user?.firstName?.[0]}{user?.lastName?.[0]}
+          </Text>
+        </View>
+      </View>
+
+      {role === 'ADMIN' || role === 'MANAGER' ? renderAdminManager() : null}
+      {role === 'SELLER' ? renderSeller() : null}
+      {role === 'WAREHOUSE' ? renderWarehouse() : null}
 
       <View style={{ height: 20 }} />
     </ScrollView>
@@ -304,8 +457,13 @@ const styles = StyleSheet.create({
     color: COLORS.gray[900],
   },
   saleCustomer: {
+    fontSize: 14,
+    color: COLORS.gray[700],
+  },
+  saleDate: {
     fontSize: 12,
     color: COLORS.gray[500],
+    marginTop: 2,
   },
   saleRight: { alignItems: 'flex-end' },
   saleTotal: {
@@ -338,6 +496,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.gray[900],
   },
+  stockWarehouse: {
+    fontSize: 11,
+    color: COLORS.gray[500],
+    marginTop: 2,
+  },
   stockBadge: {
     backgroundColor: COLORS.dangerLight,
     paddingHorizontal: 8,
@@ -348,5 +511,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.danger,
     fontWeight: '600',
+  },
+  emptyText: {
+    textAlign: 'center',
+    color: COLORS.gray[500],
+    padding: 20,
   },
 });
