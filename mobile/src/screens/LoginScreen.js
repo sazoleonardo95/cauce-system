@@ -14,7 +14,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { COLORS } from '../lib/utils';
 
-export default function LoginScreen() {
+export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -99,6 +99,10 @@ export default function LoginScreen() {
           <Text style={styles.demoText}>Vendedor: seller@demo.com / seller123</Text>
           <Text style={styles.demoText}>Bodega: bodega@demo.com / warehouse123</Text>
         </View>
+
+        <TouchableOpacity style={styles.linkButton} onPress={() => navigation.navigate('Register')}>
+          <Text style={styles.linkText}>No tienes cuenta? Registrate gratis</Text>
+        </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -202,5 +206,14 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.gray[600],
     marginBottom: 4,
+  },
+  linkButton: {
+    marginTop: 20,
+    alignItems: 'center',
+  },
+  linkText: {
+    fontSize: 14,
+    color: COLORS.primary,
+    fontWeight: '600',
   },
 });

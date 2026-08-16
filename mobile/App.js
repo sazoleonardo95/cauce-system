@@ -9,11 +9,13 @@ import { COLORS } from './src/lib/utils';
 
 // Screens
 import LoginScreen from './src/screens/LoginScreen';
+import RegisterScreen from './src/screens/RegisterScreen';
 import DashboardScreen from './src/screens/DashboardScreen';
 import ProductsScreen from './src/screens/ProductsScreen';
 import SalesScreen from './src/screens/SalesScreen';
 import InventoryScreen from './src/screens/InventoryScreen';
 import CustomersScreen from './src/screens/CustomersScreen';
+import InvitationsScreen from './src/screens/InvitationsScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -55,7 +57,7 @@ function ProfileScreen() {
   );
 }
 
-function TabIcon({ icon, color }) {
+function TabIcon({ icon }) {
   return (
     <View style={{ alignItems: 'center', justifyContent: 'center' }}>
       <Text style={{ fontSize: 20 }}>{icon}</Text>
@@ -64,6 +66,9 @@ function TabIcon({ icon, color }) {
 }
 
 function AppTabs() {
+  const { user } = useAuth();
+  const isAdminOrManager = user?.role === 'ADMIN' || user?.role === 'MANAGER';
+
   return (
     <Tab.Navigator
       screenOptions={{
@@ -78,7 +83,7 @@ function AppTabs() {
           height: 60,
         },
         tabBarLabelStyle: {
-          fontSize: 11,
+          fontSize: 10,
           fontWeight: '600',
         },
       }}
@@ -87,45 +92,63 @@ function AppTabs() {
         name="Dashboard"
         component={DashboardScreen}
         options={{
-          tabBarIcon: ({ color }) => <TabIcon icon="🏠" color={color} />,
+          tabBarIcon: ({ color }) => <TabIcon icon="🏠" />,
         }}
       />
       <Tab.Screen
         name="Productos"
         component={ProductsScreen}
         options={{
-          tabBarIcon: ({ color }) => <TabIcon icon="📦" color={color} />,
+          tabBarIcon: ({ color }) => <TabIcon icon="📦" />,
         }}
       />
       <Tab.Screen
         name="Ventas"
         component={SalesScreen}
         options={{
-          tabBarIcon: ({ color }) => <TabIcon icon="💰" color={color} />,
+          tabBarIcon: ({ color }) => <TabIcon icon="💰" />,
         }}
       />
       <Tab.Screen
         name="Inventario"
         component={InventoryScreen}
         options={{
-          tabBarIcon: ({ color }) => <TabIcon icon="📊" color={color} />,
+          tabBarIcon: ({ color }) => <TabIcon icon="📊" />,
         }}
       />
       <Tab.Screen
         name="Clientes"
         component={CustomersScreen}
         options={{
-          tabBarIcon: ({ color }) => <TabIcon icon="👥" color={color} />,
+          tabBarIcon: ({ color }) => <TabIcon icon="👥" />,
         }}
       />
+      {isAdminOrManager && (
+        <Tab.Screen
+          name="Equipo"
+          component={InvitationsScreen}
+          options={{
+            tabBarIcon: ({ color }) => <TabIcon icon="✉️" />,
+          }}
+        />
+      )}
       <Tab.Screen
         name="Perfil"
         component={ProfileScreen}
         options={{
-          tabBarIcon: ({ color }) => <TabIcon icon="👤" color={color} />,
+          tabBarIcon: ({ color }) => <TabIcon icon="👤" />,
         }}
       />
     </Tab.Navigator>
+  );
+}
+
+function AuthStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Login" component={LoginScreen} />
+      <Stack.Screen name="Register" component={RegisterScreen} />
+    </Stack.Navigator>
   );
 }
 
@@ -139,7 +162,7 @@ function AppNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       {!user ? (
-        <Stack.Screen name="Login" component={LoginScreen} />
+        <Stack.Screen name="Auth" component={AuthStack} />
       ) : (
         <Stack.Screen name="Main" component={AppTabs} />
       )}

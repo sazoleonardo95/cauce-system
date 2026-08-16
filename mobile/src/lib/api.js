@@ -188,6 +188,15 @@ class ApiClient {
   deleteCustomer(id) {
     return this.delete(`/customers/${id}`);
   }
+
+  // Invitations
+  getInvitations() {
+    return this.get('/invitations');
+  }
+
+  createInvitation(data) {
+    return this.post('/invitations', data);
+  }
 }
 
 export const api = new ApiClient();
