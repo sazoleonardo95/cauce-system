@@ -6,13 +6,29 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('Seeding database...\n');
 
-  // Create demo company
+  // Create admin user first (without company)
+  const adminPassword = await bcrypt.hash('admin123', 12);
+  const admin = await prisma.user.upsert({
+    where: { email: 'admin@demo.com' },
+    update: { password: adminPassword, role: 'ADMIN' },
+    create: {
+      email: 'admin@demo.com',
+      password: adminPassword,
+      firstName: 'Carlos',
+      lastName: 'Admin',
+      role: 'ADMIN',
+    },
+  });
+  console.log(`  Admin: ${admin.email}`);
+
+  // Create demo company with admin as owner
   const company = await prisma.company.upsert({
     where: { slug: 'demo-store' },
     update: {},
     create: {
       name: 'Demo Store',
       slug: 'demo-store',
+      ownerId: admin.id,
       address: 'Calle Principal 123',
       phone: '+1234567890',
       email: 'info@demostore.com',
@@ -20,32 +36,17 @@ async function main() {
   });
   console.log(`  Company: ${company.name}`);
 
-  // Create admin user
-  const adminPassword = await bcrypt.hash('admin123', 12);
-  const admin = await prisma.user.upsert({
-    where: { email: 'admin@demo.com' },
-    update: {},
-    create: {
-      email: 'admin@demo.com',
-      password: adminPassword,
-      firstName: 'Carlos',
-      lastName: 'Admin',
-      role: 'ADMIN',
-      companyId: company.id,
-    },
+  // Update admin with companyId
+  await prisma.user.update({
+    where: { id: admin.id },
+    data: { companyId: company.id },
   });
-
-  await prisma.company.update({
-    where: { id: company.id },
-    data: { ownerId: admin.id },
-  });
-  console.log(`  Admin: ${admin.email}`);
 
   // Create seller
   const sellerPassword = await bcrypt.hash('seller123', 12);
   const seller = await prisma.user.upsert({
     where: { email: 'seller@demo.com' },
-    update: {},
+    update: { password: sellerPassword, role: 'SELLER', managerId: admin.id },
     create: {
       email: 'seller@demo.com',
       password: sellerPassword,
@@ -62,7 +63,7 @@ async function main() {
   const warehousePassword = await bcrypt.hash('warehouse123', 12);
   const warehouseUser = await prisma.user.upsert({
     where: { email: 'bodega@demo.com' },
-    update: {},
+    update: { password: warehousePassword, role: 'WAREHOUSE' },
     create: {
       email: 'bodega@demo.com',
       password: warehousePassword,
