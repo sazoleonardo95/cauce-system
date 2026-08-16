@@ -12,16 +12,31 @@ const transporter = nodemailer.createTransport({
 });
 
 const sendEmail = async ({ to, subject, html }) => {
+  console.log('[EMAIL] Attempting to send email to:', to);
+  console.log('[EMAIL] SMTP config:', { host: process.env.SMTP_HOST, port: process.env.SMTP_PORT, user: process.env.SMTP_USER });
   try {
-    await transporter.sendMail({
+    const result = await transporter.sendMail({
       from: `"CauCE" <${process.env.SMTP_USER}>`,
       to,
       subject,
       html,
     });
+    console.log('[EMAIL] Email sent successfully:', result.messageId);
     return true;
   } catch (error) {
-    console.error('Email send error:', error);
+    console.error('[EMAIL] Email send error:', error.message);
+    console.error('[EMAIL] Full error:', JSON.stringify(error, null, 2));
+    return false;
+  }
+};
+
+const testConnection = async () => {
+  try {
+    await transporter.verify();
+    console.log('[EMAIL] SMTP connection verified OK');
+    return true;
+  } catch (error) {
+    console.error('[EMAIL] SMTP connection failed:', error.message);
     return false;
   }
 };
@@ -80,4 +95,4 @@ const sendInvitationEmail = async (email, companyName, invitedByName, inviteUrl)
   });
 };
 
-module.exports = { sendEmail, sendInvitationEmail };
+module.exports = { sendEmail, sendInvitationEmail, testConnection };

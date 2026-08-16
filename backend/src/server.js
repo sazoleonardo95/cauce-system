@@ -43,6 +43,22 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Test email endpoint
+const { sendEmail, testConnection } = require('./config/email');
+app.get('/api/test-email', async (req, res) => {
+  console.log('[TEST] Testing SMTP connection...');
+  const connected = await testConnection();
+  if (!connected) {
+    return res.status(500).json({ error: 'SMTP connection failed' });
+  }
+  const sent = await sendEmail({
+    to: req.query.to || process.env.SMTP_USER,
+    subject: 'CauCE - Test Email',
+    html: '<h1>It works!</h1><p>If you see this, email sending is configured correctly.</p>',
+  });
+  res.json({ connected, sent });
+});
+
 // Error handling
 app.use(errorHandler);
 
@@ -50,7 +66,9 @@ const PORT = process.env.PORT || 4000;
 
 app.listen(PORT, () => {
   console.log(`\n  CauCE Backend running on port ${PORT}`);
-  console.log(`  Environment: ${process.env.NODE_ENV || 'development'}\n`);
+  console.log(`  Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`  SMTP: ${process.env.SMTP_HOST}:${process.env.SMTP_PORT} user=${process.env.SMTP_USER}`);
+  console.log(`  SMTP_PASS defined: ${!!process.env.SMTP_PASS}\n`);
 });
 
 module.exports = app;
