@@ -44,19 +44,14 @@ app.get('/api/health', (req, res) => {
 });
 
 // Test email endpoint
-const { sendEmail, testConnection } = require('./config/email');
+const { sendEmail } = require('./config/email');
 app.get('/api/test-email', async (req, res) => {
-  console.log('[TEST] Testing SMTP connection...');
-  const connected = await testConnection();
-  if (!connected) {
-    return res.status(500).json({ error: 'SMTP connection failed' });
-  }
   const sent = await sendEmail({
-    to: req.query.to || process.env.SMTP_USER,
+    to: req.query.to || 'sazoleonardo95@gmail.com',
     subject: 'CauCE - Test Email',
     html: '<h1>It works!</h1><p>If you see this, email sending is configured correctly.</p>',
   });
-  res.json({ connected, sent });
+  res.json({ sent });
 });
 
 // Error handling

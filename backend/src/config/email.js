@@ -1,39 +1,20 @@
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS?.replace(/\s/g, ''),
-  },
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const sendEmail = async ({ to, subject, html }) => {
   console.log('[EMAIL] Attempting to send email to:', to);
-  console.log('[EMAIL] SMTP config:', { host: process.env.SMTP_HOST, port: process.env.SMTP_PORT, user: process.env.SMTP_USER });
   try {
-    const result = await transporter.sendMail({
-      from: `"CauCE" <${process.env.SMTP_USER}>`,
+    const result = await resend.emails.send({
+      from: 'CauCE <onboarding@resend.dev>',
       to,
       subject,
       html,
     });
-    console.log('[EMAIL] Email sent successfully:', result.messageId);
+    console.log('[EMAIL] Email sent successfully:', result.id);
     return true;
   } catch (error) {
     console.error('[EMAIL] Email send error:', error.message);
-    console.error('[EMAIL] Full error:', JSON.stringify(error, null, 2));
-    return false;
-  }
-};
-
-const testConnection = async () => {
-  try {
-    await transporter.verify();
-    console.log('[EMAIL] SMTP connection verified OK');
-    return true;
-  } catch (error) {
-    console.error('[EMAIL] SMTP connection failed:', error.message);
     return false;
   }
 };
@@ -92,4 +73,4 @@ const sendInvitationEmail = async (email, companyName, invitedByName, inviteUrl)
   });
 };
 
-module.exports = { sendEmail, sendInvitationEmail, testConnection };
+module.exports = { sendEmail, sendInvitationEmail };
