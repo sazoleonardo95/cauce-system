@@ -171,7 +171,7 @@ export default function SalesScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Ventas</Text>
-        <TouchableOpacity style={styles.newSaleBtn} onPress={() => setShowNewSale(true)}>
+        <TouchableOpacity style={styles.newSaleBtn} onPress={() => { loadData(); setShowNewSale(true); }}>
           <Text style={styles.newSaleBtnText}>+ Nueva</Text>
         </TouchableOpacity>
       </View>
