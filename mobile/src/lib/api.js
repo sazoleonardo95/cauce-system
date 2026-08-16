@@ -138,6 +138,14 @@ class ApiClient {
     return this.post('/warehouses', data);
   }
 
+  updateWarehouse(id, data) {
+    return this.put(`/warehouses/${id}`, data);
+  }
+
+  deleteWarehouse(id) {
+    return this.delete(`/warehouses/${id}`);
+  }
+
   // Inventory
   getInventory(params) {
     const query = new URLSearchParams(params || {}).toString();
@@ -196,6 +204,14 @@ class ApiClient {
 
   createInvitation(data) {
     return this.post('/invitations', data);
+  }
+
+  resendInvitation(id) {
+    return this.post(`/invitations/${id}/resend`);
+  }
+
+  cancelInvitation(id) {
+    return this.post(`/invitations/${id}/cancel`);
   }
 }
 

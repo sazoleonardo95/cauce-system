@@ -16,6 +16,7 @@ import SalesScreen from './src/screens/SalesScreen';
 import InventoryScreen from './src/screens/InventoryScreen';
 import CustomersScreen from './src/screens/CustomersScreen';
 import InvitationsScreen from './src/screens/InvitationsScreen';
+import WarehousesScreen from './src/screens/WarehousesScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -123,6 +124,15 @@ function AppTabs() {
           tabBarIcon: ({ color }) => <TabIcon icon="👥" />,
         }}
       />
+      {isAdminOrManager && (
+        <Tab.Screen
+          name="Bodegas"
+          component={WarehousesScreen}
+          options={{
+            tabBarIcon: ({ color }) => <TabIcon icon="🏬" />,
+          }}
+        />
+      )}
       {isAdminOrManager && (
         <Tab.Screen
           name="Equipo"
