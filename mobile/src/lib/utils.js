@@ -1,8 +1,9 @@
-export const formatCurrency = (amount, currency = 'USD') => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency,
-  }).format(amount);
+export const formatCurrency = (amount) => {
+  const num = Number(amount);
+  if (Number.isInteger(num)) {
+    return `$${num.toLocaleString('es-CO')}`;
+  }
+  return `$${num.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
 
 export const formatDate = (date) => {

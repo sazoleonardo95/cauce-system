@@ -131,7 +131,7 @@ export default function DashboardScreen() {
                   sale.status === 'COMPLETED' && styles.statusCompleted,
                   sale.status === 'CANCELLED' && styles.statusCancelled,
                 ]}>
-                  <Text style={styles.statusText}>{sale.status}</Text>
+                  <Text style={styles.statusText}>{sale.status === 'COMPLETED' ? 'Completada' : sale.status === 'CANCELLED' ? 'Cancelada' : sale.status === 'PENDING' ? 'Pendiente' : sale.status}</Text>
                 </View>
               </View>
             </View>

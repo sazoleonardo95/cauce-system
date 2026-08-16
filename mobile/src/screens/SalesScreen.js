@@ -158,7 +158,7 @@ export default function SalesScreen() {
           item.status === 'COMPLETED' && styles.statusCompleted,
           item.status === 'CANCELLED' && styles.statusCancelled,
         ]}>
-          <Text style={styles.statusText}>{item.status}</Text>
+          <Text style={styles.statusText}>{item.status === 'COMPLETED' ? 'Completada' : item.status === 'CANCELLED' ? 'Cancelada' : item.status === 'PENDING' ? 'Pendiente' : item.status}</Text>
         </View>
       </View>
       <View style={styles.saleBody}>
@@ -168,7 +168,7 @@ export default function SalesScreen() {
       </View>
       <View style={styles.saleFooter}>
         <Text style={styles.saleTotal}>{formatCurrency(item.total)}</Text>
-        <Text style={styles.saleItems}>{item.items?.length || 0} items</Text>
+        <Text style={styles.saleItems}>{item.items?.length || 0} {item.items?.length === 1 ? 'producto' : 'productos'}</Text>
       </View>
     </View>
   );
