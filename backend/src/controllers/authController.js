@@ -25,9 +25,7 @@ const register = async (req, res, next) => {
         return res.status(409).json({ error: 'El slug de empresa ya esta en uso' });
       }
 
-      company = await prisma.company.create({
-        data: { name: companyName, slug },
-      });
+      company = { slug, name: companyName };
     }
 
     const user = await prisma.user.create({
@@ -38,7 +36,6 @@ const register = async (req, res, next) => {
         lastName,
         phone,
         role: company ? 'ADMIN' : 'SELLER',
-        companyId: company?.id,
       },
       select: {
         id: true,
@@ -51,10 +48,14 @@ const register = async (req, res, next) => {
     });
 
     if (company) {
-      await prisma.company.update({
-        where: { id: company.id },
-        data: { ownerId: user.id },
+      const createdCompany = await prisma.company.create({
+        data: { name: company.name, slug: company.slug, ownerId: user.id },
       });
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { companyId: createdCompany.id },
+      });
+      user.companyId = createdCompany.id;
     }
 
     const tokens = generateTokens(user.id);
