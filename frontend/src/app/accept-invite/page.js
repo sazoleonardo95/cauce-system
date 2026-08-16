@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import api from '@/lib/api';
 
-export default function AcceptInvitePage() {
+function AcceptInviteForm() {
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
   const router = useRouter();
@@ -18,16 +18,6 @@ export default function AcceptInvitePage() {
     phone: '',
   });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [verifying, setVerifying] = useState(true);
-  const [invitation, setInvitation] = useState(null);
-
-  useEffect(() => {
-    if (!token) {
-      setError('Token de invitacion no encontrado');
-      setVerifying(false);
-    }
-  }, [token]);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -163,5 +153,17 @@ export default function AcceptInvitePage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function AcceptInvitePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin h-8 w-8 border-4 border-primary-600 border-t-transparent rounded-full"></div>
+      </div>
+    }>
+      <AcceptInviteForm />
+    </Suspense>
   );
 }
