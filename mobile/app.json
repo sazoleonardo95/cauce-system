@@ -23,11 +23,17 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#2563EB"
       },
-      "package": "com.cauce.mobile"
+      "package": "com.cauce.mobile",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
-    "plugins": [
-      "expo-camera",
-      "expo-secure-store"
-    ]
+    "plugins": [],
+    "extra": {
+      "eas": {
+        "projectId": "1f4ed618-1b10-41a4-a73d-23143859c1f8"
+      }
+    }
   }
 }
