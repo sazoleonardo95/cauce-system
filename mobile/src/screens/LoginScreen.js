@@ -92,14 +92,6 @@ export default function LoginScreen({ navigation }) {
           </TouchableOpacity>
         </View>
 
-        {/* Demo Credentials */}
-        <View style={styles.demoBox}>
-          <Text style={styles.demoTitle}>Cuentas de demo:</Text>
-          <Text style={styles.demoText}>Admin: admin@demo.com / admin123</Text>
-          <Text style={styles.demoText}>Vendedor: seller@demo.com / seller123</Text>
-          <Text style={styles.demoText}>Bodega: bodega@demo.com / warehouse123</Text>
-        </View>
-
         <TouchableOpacity style={styles.linkButton} onPress={() => navigation.navigate('Register')}>
           <Text style={styles.linkText}>No tienes cuenta? Registrate gratis</Text>
         </TouchableOpacity>
