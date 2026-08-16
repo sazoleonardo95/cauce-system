@@ -1,4 +1,5 @@
 import React from 'react';
+import { View, Text } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -78,10 +79,9 @@ function AppTabs() {
 
 function TabIcon({ icon }) {
   return (
-    <React.Fragment>
-      <StatusBar style="dark" />
-      <React.Fragment>{icon}</React.Fragment>
-    </React.Fragment>
+    <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+      <Text style={{ fontSize: 20 }}>{icon}</Text>
+    </View>
   );
 }
 
