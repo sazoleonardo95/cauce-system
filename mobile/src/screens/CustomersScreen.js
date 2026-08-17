@@ -27,7 +27,7 @@ export default function CustomersScreen() {
   useFocusEffect(
     useCallback(() => {
       loadCustomers();
-    }, [search])
+    }, [])
   );
 
   const loadCustomers = async () => {

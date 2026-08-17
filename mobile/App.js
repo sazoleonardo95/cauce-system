@@ -6,6 +6,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { COLORS } from './src/lib/utils';
+import ErrorBoundary from './src/components/ErrorBoundary';
 
 // Screens
 import LoginScreen from './src/screens/LoginScreen';
@@ -182,11 +183,13 @@ function AppNavigator() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <NavigationContainer>
-        <AppNavigator />
-        <StatusBar style="auto" />
-      </NavigationContainer>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <NavigationContainer>
+          <AppNavigator />
+          <StatusBar style="auto" />
+        </NavigationContainer>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
