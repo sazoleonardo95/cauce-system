@@ -30,6 +30,7 @@ export default function SalesScreen() {
   const [productSearch, setProductSearch] = useState('');
   const [showCustomerPicker, setShowCustomerPicker] = useState(false);
   const [showWarehousePicker, setShowWarehousePicker] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -43,6 +44,7 @@ export default function SalesScreen() {
       setSales(data.sales);
     } catch (error) {
       console.error('Error loading sales:', error);
+      Alert.alert('Error', 'No se pudieron cargar las ventas');
     } finally {
       setLoading(false);
     }
@@ -60,6 +62,7 @@ export default function SalesScreen() {
       setWarehouses(w);
     } catch (error) {
       console.error('Error loading data:', error);
+      Alert.alert('Error', 'No se pudieron cargar los datos para la venta');
     }
   };
 
@@ -121,6 +124,8 @@ export default function SalesScreen() {
       Alert.alert('Error', 'Selecciona una bodega para descontar inventario');
       return;
     }
+    if (saving) return;
+    setSaving(true);
     try {
       await api.createSale({
         customerId: selectedCustomer,
@@ -134,7 +139,7 @@ export default function SalesScreen() {
         taxRate: parseFloat(taxRate) || 0,
         paymentMethod,
       });
-      Alert.alert('Exito', 'Venta registrada');
+      Alert.alert('\u00C9xito', 'Venta registrada');
       setShowNewSale(false);
       setSelectedItems([]);
       setSelectedCustomer(null);
@@ -143,6 +148,8 @@ export default function SalesScreen() {
       loadSales();
     } catch (error) {
       Alert.alert('Error', error.message);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -362,8 +369,8 @@ export default function SalesScreen() {
             <View style={{ width: 60 }} />
           </View>
           <FlatList
-            data={[{ id: null, name: 'Sin bodega' }, ...warehouses]}
-            keyExtractor={(item) => item.id || 'none'}
+            data={warehouses}
+            keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
               <TouchableOpacity
                 style={[styles.pickerItem, selectedWarehouse === item.id && styles.pickerItemActive]}

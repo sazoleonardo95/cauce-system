@@ -23,6 +23,7 @@ export default function WarehousesScreen() {
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ name: '', code: '', address: '' });
 
   const canManage = user?.role === 'ADMIN' || user?.role === 'MANAGER';
@@ -30,7 +31,7 @@ export default function WarehousesScreen() {
   useFocusEffect(
     useCallback(() => {
       loadWarehouses();
-    }, [search])
+    }, [])
   );
 
   const loadWarehouses = async () => {
@@ -69,18 +70,22 @@ export default function WarehousesScreen() {
       Alert.alert('Error', 'El codigo es obligatorio');
       return;
     }
+    if (saving) return;
+    setSaving(true);
     try {
       if (editing) {
         await api.updateWarehouse(editing.id, form);
-        Alert.alert('Exito', 'Bodega actualizada');
+        Alert.alert('\u00C9xito', 'Bodega actualizada');
       } else {
         await api.createWarehouse(form);
-        Alert.alert('Exito', 'Bodega creada');
+        Alert.alert('\u00C9xito', 'Bodega creada');
       }
       setShowModal(false);
       loadWarehouses();
     } catch (error) {
       Alert.alert('Error', error.message);
+    } finally {
+      setSaving(false);
     }
   };
 

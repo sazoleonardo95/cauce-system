@@ -5,6 +5,8 @@ import {
   ScrollView,
   StyleSheet,
   RefreshControl,
+  Alert,
+  TouchableOpacity,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
@@ -28,6 +30,7 @@ export default function DashboardScreen() {
       setStats(data);
     } catch (error) {
       console.error('Error loading stats:', error);
+      Alert.alert('Error', 'No se pudieron cargar las estadisticas');
     }
   };
 
@@ -41,6 +44,9 @@ export default function DashboardScreen() {
     return (
       <View style={styles.loadingContainer}>
         <Text style={styles.loadingText}>Cargando...</Text>
+        <TouchableOpacity onPress={loadStats} style={{ marginTop: 16, padding: 12, backgroundColor: COLORS.primaryLight, borderRadius: 8 }}>
+          <Text style={{ color: COLORS.primary, fontWeight: '600' }}>Reintentar</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -308,6 +314,11 @@ export default function DashboardScreen() {
       {role === 'ADMIN' || role === 'MANAGER' ? renderAdminManager() : null}
       {role === 'SELLER' ? renderSeller() : null}
       {role === 'WAREHOUSE' ? renderWarehouse() : null}
+      {!['ADMIN', 'MANAGER', 'SELLER', 'WAREHOUSE'].includes(role) && (
+        <View style={{ padding: 20, alignItems: 'center' }}>
+          <Text style={{ color: COLORS.gray[500] }}>Rol no reconocido</Text>
+        </View>
+      )}
 
       <View style={{ height: 20 }} />
     </ScrollView>

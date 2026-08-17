@@ -21,6 +21,7 @@ export default function CustomersScreen() {
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ name: '', email: '', phone: '', address: '', taxId: '', notes: '' });
 
   useFocusEffect(
@@ -64,18 +65,22 @@ export default function CustomersScreen() {
       Alert.alert('Error', 'El nombre es obligatorio');
       return;
     }
+    if (saving) return;
+    setSaving(true);
     try {
       if (editing) {
         await api.updateCustomer(editing.id, form);
-        Alert.alert('Exito', 'Cliente actualizado');
+        Alert.alert('\u00C9xito', 'Cliente actualizado');
       } else {
         await api.createCustomer(form);
-        Alert.alert('Exito', 'Cliente creado');
+        Alert.alert('\u00C9xito', 'Cliente creado');
       }
       setShowModal(false);
       loadCustomers();
     } catch (error) {
       Alert.alert('Error', error.message);
+    } finally {
+      setSaving(false);
     }
   };
 

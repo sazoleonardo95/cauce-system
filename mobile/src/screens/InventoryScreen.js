@@ -30,6 +30,7 @@ export default function InventoryScreen() {
     quantity: '',
     notes: '',
   });
+  const [saving, setSaving] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -59,17 +60,21 @@ export default function InventoryScreen() {
       Alert.alert('Error', 'Completa todos los campos');
       return;
     }
+    if (saving) return;
+    setSaving(true);
     try {
       await api.adjustStock({
         ...adjustForm,
         quantity: parseInt(adjustForm.quantity),
       });
-      Alert.alert('Exito', 'Stock ajustado');
+      Alert.alert('\u00C9xito', 'Stock ajustado');
       setShowAdjust(false);
       setAdjustForm({ productId: '', warehouseId: '', type: 'ENTRY', quantity: '', notes: '' });
       loadData();
     } catch (error) {
       Alert.alert('Error', error.message);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -248,7 +253,7 @@ export default function InventoryScreen() {
       <Modal visible={showProductPicker} animationType="slide" presentationStyle="pageSheet">
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={() => setShowProductPicker(false)}>
+            <TouchableOpacity onPress={() => { setShowProductPicker(false); setProductSearch(''); }}>
               <Text style={styles.modalCancel}>Cancelar</Text>
             </TouchableOpacity>
             <Text style={styles.modalTitle}>Seleccionar Producto</Text>
