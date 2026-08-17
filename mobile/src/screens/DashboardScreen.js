@@ -5,7 +5,7 @@ import {
   ScrollView,
   StyleSheet,
   RefreshControl,
-  Alert,
+  ActivityIndicator,
   TouchableOpacity,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
@@ -16,6 +16,8 @@ import { formatCurrency, COLORS } from '../lib/utils';
 export default function DashboardScreen() {
   const { user } = useAuth();
   const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   useFocusEffect(
@@ -26,26 +28,38 @@ export default function DashboardScreen() {
 
   const loadStats = async () => {
     try {
+      setError(false);
       const data = await api.getDashboardStats();
       setStats(data);
-    } catch (error) {
-      console.error('Error loading stats:', error);
-      Alert.alert('Error', 'No se pudieron cargar las estadisticas');
+    } catch (err) {
+      setError(true);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
   };
 
   const onRefresh = async () => {
     setRefreshing(true);
     await loadStats();
-    setRefreshing(false);
   };
 
-  if (!stats) {
+  if (loading && !stats) {
     return (
       <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>Cargando...</Text>
-        <TouchableOpacity onPress={loadStats} style={{ marginTop: 16, padding: 12, backgroundColor: COLORS.primaryLight, borderRadius: 8 }}>
-          <Text style={{ color: COLORS.primary, fontWeight: '600' }}>Reintentar</Text>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+      </View>
+    );
+  }
+
+  if (error && !stats) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={{ fontSize: 48, marginBottom: 16 }}>&#9888;</Text>
+        <Text style={styles.loadingText}>Sin conexion</Text>
+        <Text style={{ fontSize: 14, color: COLORS.gray[400], marginBottom: 24 }}>Verifica tu conexion a internet</Text>
+        <TouchableOpacity onPress={loadStats} style={{ padding: 14, backgroundColor: COLORS.primary, borderRadius: 10 }}>
+          <Text style={{ color: '#fff', fontWeight: '600', fontSize: 16 }}>Reintentar</Text>
         </TouchableOpacity>
       </View>
     );
@@ -334,9 +348,12 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: COLORS.gray[50],
   },
   loadingText: {
-    color: COLORS.gray[500],
+    fontSize: 18,
+    color: COLORS.gray[600],
+    fontWeight: '500',
   },
   header: {
     flexDirection: 'row',
