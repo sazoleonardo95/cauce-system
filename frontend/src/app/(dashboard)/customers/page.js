@@ -9,6 +9,7 @@ export default function CustomersPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({ name: '', email: '', phone: '', address: '', taxId: '', notes: '' });
 
   const loadCustomers = async () => {
@@ -24,13 +25,36 @@ export default function CustomersPage() {
 
   useEffect(() => { loadCustomers(); }, [search]);
 
+  const openCreate = () => {
+    setEditing(null);
+    setForm({ name: '', email: '', phone: '', address: '', taxId: '', notes: '' });
+    setShowModal(true);
+  };
+
+  const openEdit = (customer) => {
+    setEditing(customer);
+    setForm({
+      name: customer.name || '',
+      email: customer.email || '',
+      phone: customer.phone || '',
+      address: customer.address || '',
+      taxId: customer.taxId || '',
+      notes: customer.notes || '',
+    });
+    setShowModal(true);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await api.createCustomer(form);
-      toast.success('Cliente creado');
+      if (editing) {
+        await api.updateCustomer(editing.id, form);
+        toast.success('Cliente actualizado');
+      } else {
+        await api.createCustomer(form);
+        toast.success('Cliente creado');
+      }
       setShowModal(false);
-      setForm({ name: '', email: '', phone: '', address: '', taxId: '', notes: '' });
       loadCustomers();
     } catch (err) {
       toast.error(err.message);
@@ -55,7 +79,7 @@ export default function CustomersPage() {
           <h1 className="text-2xl font-bold text-gray-900">Clientes</h1>
           <p className="text-gray-500 mt-1">{customers.length} clientes registrados</p>
         </div>
-        <button onClick={() => setShowModal(true)} className="btn-primary">+ Nuevo Cliente</button>
+        <button onClick={openCreate} className="btn-primary">+ Nuevo Cliente</button>
       </div>
 
       <div className="card">
@@ -81,14 +105,15 @@ export default function CustomersPage() {
                 <tr><td colSpan={6} className="px-6 py-12 text-center text-gray-500">No se encontraron clientes</td></tr>
               ) : (
                 customers.map((customer) => (
-                  <tr key={customer.id} className="hover:bg-gray-50">
+                  <tr key={customer.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => openEdit(customer)}>
                     <td className="px-6 py-4 text-sm font-medium text-gray-900">{customer.name}</td>
                     <td className="px-6 py-4 text-sm text-gray-600">{customer.email || '-'}</td>
                     <td className="px-6 py-4 text-sm text-gray-600">{customer.phone || '-'}</td>
                     <td className="px-6 py-4 text-sm text-gray-600">{customer.address || '-'}</td>
                     <td className="px-6 py-4 text-sm text-gray-600">{customer._count?.sales || 0}</td>
                     <td className="px-6 py-4">
-                      <button onClick={() => handleDelete(customer.id)} className="text-red-600 hover:text-red-700 text-sm">Eliminar</button>
+                      <button onClick={(e) => { e.stopPropagation(); openEdit(customer); }} className="text-primary-600 hover:text-primary-700 text-sm mr-3">Editar</button>
+                      <button onClick={(e) => { e.stopPropagation(); handleDelete(customer.id); }} className="text-red-600 hover:text-red-700 text-sm">Eliminar</button>
                     </td>
                   </tr>
                 ))
@@ -102,7 +127,7 @@ export default function CustomersPage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl w-full max-w-lg mx-4">
             <div className="p-6 border-b border-gray-200">
-              <h2 className="text-lg font-semibold">Nuevo Cliente</h2>
+              <h2 className="text-lg font-semibold">{editing ? 'Editar Cliente' : 'Nuevo Cliente'}</h2>
             </div>
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div>
@@ -127,9 +152,13 @@ export default function CustomersPage() {
                 <label className="label">RUC/NIT</label>
                 <input className="input" value={form.taxId} onChange={(e) => setForm({ ...form, taxId: e.target.value })} />
               </div>
+              <div>
+                <label className="label">Notas</label>
+                <textarea className="input" rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+              </div>
               <div className="flex justify-end gap-3 pt-4">
                 <button type="button" onClick={() => setShowModal(false)} className="btn-secondary">Cancelar</button>
-                <button type="submit" className="btn-primary">Crear Cliente</button>
+                <button type="submit" className="btn-primary">{editing ? 'Guardar Cambios' : 'Crear Cliente'}</button>
               </div>
             </form>
           </div>

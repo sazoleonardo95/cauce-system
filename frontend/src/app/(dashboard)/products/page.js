@@ -10,6 +10,7 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({ name: '', sku: '', barcode: '', price: '', cost: '', category: '', minStock: '', description: '' });
 
   const loadProducts = async () => {
@@ -25,18 +26,44 @@ export default function ProductsPage() {
 
   useEffect(() => { loadProducts(); }, [search]);
 
+  const openCreate = () => {
+    setEditing(null);
+    setForm({ name: '', sku: '', barcode: '', price: '', cost: '', category: '', minStock: '', description: '' });
+    setShowModal(true);
+  };
+
+  const openEdit = (product) => {
+    setEditing(product);
+    setForm({
+      name: product.name || '',
+      sku: product.sku || '',
+      barcode: product.barcode || '',
+      price: String(product.price || ''),
+      cost: String(product.cost || ''),
+      category: product.category || '',
+      minStock: String(product.minStock || ''),
+      description: product.description || '',
+    });
+    setShowModal(true);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await api.createProduct({
+      const payload = {
         ...form,
         price: parseFloat(form.price),
         cost: form.cost ? parseFloat(form.cost) : undefined,
         minStock: parseInt(form.minStock) || 0,
-      });
-      toast.success('Producto creado');
+      };
+      if (editing) {
+        await api.updateProduct(editing.id, payload);
+        toast.success('Producto actualizado');
+      } else {
+        await api.createProduct(payload);
+        toast.success('Producto creado');
+      }
       setShowModal(false);
-      setForm({ name: '', sku: '', barcode: '', price: '', cost: '', category: '', minStock: '', description: '' });
       loadProducts();
     } catch (err) {
       toast.error(err.message);
@@ -61,7 +88,7 @@ export default function ProductsPage() {
           <h1 className="text-2xl font-bold text-gray-900">Productos</h1>
           <p className="text-gray-500 mt-1">{products.length} productos registrados</p>
         </div>
-        <button onClick={() => setShowModal(true)} className="btn-primary">+ Nuevo Producto</button>
+        <button onClick={openCreate} className="btn-primary">+ Nuevo Producto</button>
       </div>
 
       <div className="card">
@@ -88,7 +115,7 @@ export default function ProductsPage() {
                 <tr><td colSpan={7} className="px-6 py-12 text-center text-gray-500">No se encontraron productos</td></tr>
               ) : (
                 products.map((product) => (
-                  <tr key={product.id} className="hover:bg-gray-50">
+                  <tr key={product.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => openEdit(product)}>
                     <td className="px-6 py-4">
                       <div>
                         <p className="text-sm font-medium text-gray-900">{product.name}</p>
@@ -107,7 +134,8 @@ export default function ProductsPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <button onClick={() => handleDelete(product.id)} className="text-red-600 hover:text-red-700 text-sm">Eliminar</button>
+                      <button onClick={(e) => { e.stopPropagation(); openEdit(product); }} className="text-primary-600 hover:text-primary-700 text-sm mr-3">Editar</button>
+                      <button onClick={(e) => { e.stopPropagation(); handleDelete(product.id); }} className="text-red-600 hover:text-red-700 text-sm">Eliminar</button>
                     </td>
                   </tr>
                 ))
@@ -117,12 +145,11 @@ export default function ProductsPage() {
         </div>
       </div>
 
-      {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-gray-200">
-              <h2 className="text-lg font-semibold">Nuevo Producto</h2>
+              <h2 className="text-lg font-semibold">{editing ? 'Editar Producto' : 'Nuevo Producto'}</h2>
             </div>
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -161,7 +188,7 @@ export default function ProductsPage() {
               </div>
               <div className="flex justify-end gap-3 pt-4">
                 <button type="button" onClick={() => setShowModal(false)} className="btn-secondary">Cancelar</button>
-                <button type="submit" className="btn-primary">Crear Producto</button>
+                <button type="submit" className="btn-primary">{editing ? 'Guardar Cambios' : 'Crear Producto'}</button>
               </div>
             </form>
           </div>
