@@ -1,0 +1,336 @@
+## CONTEXTO COMPLETO DEL PROYECTO CauCE
+
+Eres desarrollador del proyecto CauCE. Este archivo contiene TODO el contexto necesario para continuar el desarrollo. Lee cada seccion cuidadosamente.
+
+---
+
+## 1. QUE ES EL PROYECTO
+
+CauCE es un sistema de ventas e inventario completo con 3 partes:
+- **Backend** (API): Node.js + Express + Prisma ORM
+- **Frontend** (Web): Next.js 14 + Tailwind CSS
+- **Mobile** (App Android): React Native + Expo SDK 51
+
+Permite gestionar productos, bodegas, inventario, ventas, clientes, y un sistema de invitaciones por email con 4 roles: Admin, Gerente, Vendedor, Bodega.
+
+---
+
+## 2. REPOSITORIO
+
+GitHub: https://github.com/sazoleonardo95/cauce-system
+Rama: main
+
+Para clonar:
+```
+git clone https://github.com/sazoleonardo95/cauce-system.git
+```
+
+---
+
+## 3. CREDENCIALES DE TODOS LOS SERVICIOS
+
+### Supabase (Base de datos PostgreSQL)
+- Dashboard: https://supabase.com/dashboard/project/txlbltovtbfxxirjytwb
+- URL conexion: postgresql://postgres.txlbltovtbfxxirjytwb:HZSh7sXZtOYjy3py@db.txlbltovtbfxxirjytwb.supabase.co:5432/postgres
+- Password Supabase: HZSh7sXZtOYjy3py
+- Project ID: txlbltovtbfxxirjytwb
+
+### Railway (Deploy del Backend)
+- Dashboard: https://railway.com/project/ae936596-0039-40bc-afe2-168098be7496
+- URL: https://cauce-system-production.up.railway.app
+- Variables de entorno en Railway:
+  - DATABASE_URL=postgresql://postgres.txlbltovtbfxxirjytwb:HZSh7sXZtOYjy3py@db.txlbltovtbfxxirjytwb.supabase.co:5432/postgres?pgbouncer=true
+  - JWT_SECRET=cauce-jwt-secret-2026
+  - JWT_REFRESH_SECRET=cauce-jwt-refresh-secret-2026
+  - JWT_EXPIRES_IN=15m
+  - JWT_REFRESH_EXPIRES_IN=7d
+  - NODE_ENV=production
+  - FRONTEND_URL=https://cauce-system-two.vercel.app
+  - PORT=4000
+  - RESEND_API_KEY=[ver dashboard de Railway]
+
+### Vercel (Deploy del Frontend)
+- Dashboard: https://vercel.com/dashboard
+- URL: https://cauce-system-two.vercel.app
+- Variables de entorno en Vercel:
+  - NEXT_PUBLIC_API_URL=https://cauce-system-production.up.railway.app/api
+
+### Expo / EAS (Build del APK movil)
+- Cuenta actual: leosazom2 (email: emercar2026@gmail.com)
+- Cuenta vieja (sin builds): leosazom (sazoleonardo95@gmail.com)
+- EAS Project ID: 702e2357-e91a-4c87-ab36-1fbc733c947e
+- Para login: npx eas-cli login
+
+### Resend (Email)
+- API Key: [ver variables de entorno de Railway]
+
+### Credenciales de Demo
+- Admin: admin@demo.com / admin123
+- Vendedor: seller@demo.com / seller123
+- Bodega: bodega@demo.com / warehouse123
+- Usuario real: sazoleonardo95@gmail.com (rol SELLER)
+
+---
+
+## 4. ARQUITECTURA DEL CODIGO
+
+### Estructura del Backend (backend/)
+```
+backend/
+  prisma/
+    schema.prisma          # Todos los modelos de la DB
+    seed.js                # Datos demo (13 productos, 6 clientes, 2 bodegas, ventas)
+  src/
+    config/
+      database.js          # PrismaClient singleton
+      email.js             # Resend API para emails
+    controllers/
+      authController.js        # Login, register, profile
+      productController.js     # CRUD productos
+      warehouseController.js   # CRUD bodegas
+      inventoryController.js   # Ver inventario, ajustar stock, crear notificaciones LOW_STOCK + push
+      saleController.js        # CRUD ventas, descuenta inventario automaticamente
+      customerController.js    # CRUD clientes
+      invitationController.js  # CRUD invitaciones, enviar email, accept crea usuario, push notification
+      dashboardController.js   # Estadisticas por rol (sin authorize middleware)
+      notificationController.js # CRUD notificaciones in-app + register device token
+    middleware/
+      auth.js              # JWT verify + authorize(roles)
+      errorHandler.js      # Maneja errores de Prisma (P2002 duplicate, P2025 not found)
+    routes/
+      auth.js, products.js, warehouses.js, inventory.js, customers.js, sales.js, invitations.js, dashboard.js, notifications.js
+    services/
+      notificationService.js  # Firebase init + sendPushNotification (graceful degradation sin Firebase)
+    server.js              # Express app, CORS, rate limit, Firebase init, rutas
+```
+
+### Estructura del Frontend (frontend/)
+```
+frontend/src/
+  app/
+    layout.js                    # Root layout con metadata CauCE
+    page.js                      # Landing page o redirect a dashboard
+    (auth)/login/page.js         # Login con back button, toggle password, demo accounts
+    (auth)/register/page.js      # Register con terms checkbox, benefits
+    (dashboard)/dashboard/page.js  # Dashboard por roles (4 render functions)
+    (dashboard)/products/page.js   # CRUD con modal de edicion
+    (dashboard)/warehouses/page.js # CRUD con stats por bodega
+    (dashboard)/customers/page.js  # CRUD con modal de edicion
+    (dashboard)/sales/page.js
+    (dashboard)/inventory/page.js
+    (dashboard)/team/page.js
+    (dashboard)/invitations/page.js
+    accept-invite/page.js          # Pagina publica para aceptar invitacion
+  components/
+    LandingPage.js    # Hero, features (6), pricing (3 tiers), FAQ (8), integrations (12), security, testimonials (6)
+    Sidebar.js        # Nav con propiedad adminOnly para Bodegas/Equipo/Invitaciones
+  lib/
+    api.js            # ApiClient con JWT auto-attach
+    utils.js          # formatCurrency (es-CO locale), formatDate, formatDateTime
+```
+
+### Estructura del Mobile (mobile/)
+```
+mobile/
+  App.js              # NavigationContainer con Stack (Auth/Main) y Tabs
+  app.json            # Expo config, package: com.cauce.mobile
+  eas.json            # EAS build profiles (preview = APK)
+  src/
+    context/AuthContext.js  # Login, logout, register push token on login
+    lib/
+      api.js          # ApiClient con todos los endpoints (getProducts, createSale, etc)
+      utils.js        # formatCurrency (es-CO), COLORS constant
+      notifications.js # expo-notifications setup, registerForPushNotifications
+    screens/
+      LoginScreen.js
+      RegisterScreen.js
+      DashboardScreen.js     # Role-based: renderAdminManager, renderSeller, renderWarehouse
+      ProductsScreen.js      # CRUD con modal edicion, double-submit protection
+      SalesScreen.js         # Con customer/warehouse/payment pickers, require warehouse
+      InventoryScreen.js     # Con product picker, ENTRY/EXIT/ADJUSTMENT types
+      CustomersScreen.js     # CRUD con modal edicion
+      WarehousesScreen.js    # CRUD con stats (productos, unidades, bajo stock)
+      InvitationsScreen.js   # Solo admin/manager
+      NotificationsScreen.js # Lista de notificaciones in-app, mark as read
+    components/
+      ErrorBoundary.js  # Catch crashes, muestra error + retry
+```
+
+---
+
+## 5. MODELOS DE LA BASE DE DATOS (Prisma Schema)
+
+Modelos principales:
+- **User**: id, email, password, firstName, lastName, phone, role (ADMIN/MANAGER/SELLER/WAREHOUSE), avatar, isActive, companyId, managerId
+- **Company**: id, name, slug, ownerId, logo, address, phone, email, website, taxId
+- **Product**: id, name, sku, barcode, price, cost, category, description, minStock, isActive, companyId
+- **Warehouse**: id, name, code, address, isActive, companyId
+- **InventoryItem**: id, productId, warehouseId, quantity (compound unique: productId_warehouseId)
+- **Sale**: id, saleNumber, status (COMPLETED/CANCELLED/PENDING), subtotal, taxRate, taxAmount, discount, total, notes, paymentMethod, saleDate, companyId, sellerId, customerId, warehouseId
+- **SaleItem**: id, quantity, unitPrice, discount, saleId, productId
+- **Customer**: id, name, email, phone, address, taxId, notes, isActive, companyId
+- **Invitation**: id, email, role, token, status (PENDING/ACCEPTED/CANCELLED/EXPIRED), expiresAt, companyId, invitedById, acceptedAt
+- **Notification**: id, title, message, type, isRead, data, userId
+- **StockMovement**: id, type (ENTRY/EXIT/ADJUSTMENT), quantity, reference, notes, productId, warehouseId, createdById
+- **Commission**: id, amount, isPaid, sellerId, saleId
+- **DeviceToken**: id, token, platform, isActive, userId (PARA NOTIFICACIONES PUSH - pendiente de crear tabla)
+
+---
+
+## 6. FUNCIONALIDADES POR ROL
+
+| Modulo | Admin | Gerente | Vendedor | Bodega |
+|--------|-------|---------|----------|--------|
+| Dashboard | Stats totales + top vendedores + low stock + warehouse stats | Igual que admin | Solo sus ventas/comisiones | Inventario + low stock + warehouse stats |
+| Productos | Ver/Crear/Editar/Eliminar | Ver/Crear/Editar/Eliminar | Ver/Crear/Editar | Solo ver |
+| Ventas | Ver/Crear/Cancelar | Ver/Crear/Cancelar | Ver/Crear (requiere bodega) | Solo ver |
+| Inventario | Ver/Ajustar | Ver/Ajustar | Ver/Ajustar | Solo ver |
+| Clientes | Ver/Crear/Editar/Eliminar | Ver/Crear/Editar/Eliminar | Ver/Crear/Editar | Solo ver |
+| Bodegas | Ver/Crear/Editar/Eliminar | Ver/Crear/Editar | No accede | Solo ver |
+| Invitaciones | Enviar/Reenviar/Cancelar | Enviar/Reenviar/Cancelar | No accede | No accede |
+| Notificaciones | Ver + marcar leido | Ver + marcar leido | Ver + marcar leido | Ver + marcar leido |
+
+---
+
+## 7. DECISIONES TECNICAS IMPORTANTES
+
+1. **Currency format**: Usar `toLocaleString('es-CO')` - muestra $1.234.567 sin .00 para enteros
+2. **Registration flow**: Crear user primero, luego company con ownerId, luego actualizar user con companyId
+3. **Dashboard route auth**: `/api/dashboard/stats` NO tiene authorize() middleware - el controller filtra por rol internamente
+4. **Sidebar admin**: Los items Bodegas, Equipo, Invitaciones tienen `adminOnly: true` - el Sidebar los oculta para roles no-admin
+5. **Sale inventory**: Solo descuenta stock si `warehouseId` esta presente en la venta
+6. **Firebase degradation**: Si no hay FIREBASE_PROJECT_ID en env vars, no crashea - solo log warning
+7. **Push notifications**: Fire-and-forget (`.catch(() => {})`) - nunca bloquean la request
+8. **Invalid tokens**: Si Firebase retorna token invalido, se desactiva en DB automaticamente
+9. **Search en mobile**: `useFocusEffect` con `[]` (no `[search]`) - la busqueda es client-side con filter
+10. **Double-submit protection**: Todos los forms tienen estado `saving` que bloquea submit repetido
+
+---
+
+## 8. BUGS CORREGIDOS (NO VOLVER A COMETER)
+
+| Bug | Causa | Fix |
+|-----|-------|-----|
+| ProductsScreen crash | Archivo corrupto (minificado a 15 lineas) | Reescrito con formato correcto |
+| Dashboard lento | `[search]` en useFocusEffect causaba API call por tecla | Cambiado a `[]` |
+| Dashboard muestra "Reintentar" en carga | Boton visible desde el inicio | Spinner limpio, error solo si API falla |
+| Crash por nombre null | `item.name[0]` sin null check | `item.name?.[0] \|\| 'P'` |
+| "Exito" sin acento | Falta tilde en i | Cambiado a `\u00C9xito` |
+| Doble-tap guardado | Sin protection | Estado `saving` en todos los forms |
+| formatCurrency inconsistente | Mobile usaba format diferente | Unificado a es-CO en ambos |
+| "Sin bodega" confuso | Opcion en picker siempre fallaba | Removida del picker |
+
+---
+
+## 9. LO QUE FALTA (v1.1)
+
+### Notificaciones Push (TODO EL CODIGO ESTA LISTO, falta configurar)
+1. Crear proyecto Firebase en console.firebase.google.com
+2. Ejecutar SQL en Supabase para crear tabla DeviceToken:
+```sql
+CREATE TABLE IF NOT EXISTS "DeviceToken" (
+  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  token TEXT UNIQUE NOT NULL,
+  platform TEXT DEFAULT 'android',
+  "isActive" BOOLEAN DEFAULT true,
+  "createdAt" TIMESTAMPTZ DEFAULT now(),
+  "updatedAt" TIMESTAMPTZ DEFAULT now(),
+  "userId" TEXT NOT NULL REFERENCES "User"(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS "DeviceToken_userId_idx" ON "DeviceToken"("userId");
+```
+3. Agregar env vars en Railway:
+   - FIREBASE_PROJECT_ID
+   - FIREBASE_PRIVATE_KEY_ID
+   - FIREBASE_PRIVATE_KEY
+   - FIREBASE_CLIENT_EMAIL
+   - FIREBASE_CLIENT_ID
+   - FIREBASE_CLIENT_CERT_URL
+
+### Otros pendientes:
+- Push notifications para ventas nuevas
+- Reportes/PDF
+- Modo offline
+- Paginacion en todas las listas
+- Filtros avanzados
+
+---
+
+## 10. COMANDOS UTILES
+
+```bash
+# Clonar el proyecto
+git clone https://github.com/sazoleonardo95/cauce-system.git
+cd cauce-system
+
+# Backend - desarrollo
+cd backend
+npm install
+npx prisma generate
+npx prisma db seed
+npm run dev
+
+# Backend - migrar DB
+npx prisma migrate dev --name nombre_migracion
+
+# Frontend - desarrollo
+cd frontend
+npm install
+npm run dev
+
+# Frontend - deploy (auto con git push)
+npm run build
+
+# Mobile - desarrollo
+cd mobile
+npm install
+npx expo start
+
+# Mobile - build APK
+npx eas-cli login
+npx eas-cli build --platform android --profile preview --non-interactive
+
+# Mobile - ver ultimo build
+npx eas-cli build:list --platform android --limit 1 --json
+
+# Deploy todo
+git add -A
+git commit -m "mensaje"
+git push
+```
+
+---
+
+## 11. URLs DE REFERENCIA
+
+- Backend API: https://cauce-system-production.up.railway.app/api
+- Frontend: https://cauce-system-two.vercel.app
+- Landing page: https://cauce-system-two.vercel.app (sin login)
+- Login: https://cauce-system-two.vercel.app/login
+- Dashboard: https://cauce-system-two.vercel.app/dashboard
+- Accept invite: https://cauce-system-two.vercel.app/accept-invite?token=TOKEN
+- Supabase: https://supabase.com/dashboard/project/txlbltovtbfxxirjytwb
+- Railway: https://railway.com/project/ae936596-0039-40bc-afe2-168098be7496
+- GitHub: https://github.com/sazoleonardo95/cauce-system
+- EAS Builds: https://expo.dev/accounts/leosazom2/projects/cauce-mobile
+
+---
+
+## 12. INSTRUCCIONES PARA EL NUEVO CHAT
+
+1. Clona el repositorio: `git clone https://github.com/sazoleonardo95/cauce-system.git`
+2. Lee el HISTORIAL-PROYECTO.md en la raiz
+3. Lee este archivo (contexto-completo.txt)
+4. Pregunta al usuario que quiere hacer
+5. Antes de editar cualquier archivo, PRIMERO lee el archivo existente
+6. Siempre haz `git push` despues de cambios importantes
+7. El usuario habla en ESPANOL - responde en espanol
+8. El usuario necesita guia completa para todo - no asumas que sabe技术icas
+9. Usa formatCurrency con locale es-CO ($1.234.567 sin .00)
+10. Todo el texto de la UI debe estar en ESPANOL
+
+---
+
+FECHA: 16-17 Agosto 2026
+VERSION: 1.0
+ESTADO: App funcional, notificaciones push pendientes de configurar Firebase
