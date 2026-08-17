@@ -1,4 +1,5 @@
 const prisma = require('../config/database');
+const { sendPushNotification } = require('../services/notificationService');
 
 const getInventory = async (req, res, next) => {
   try {
@@ -88,6 +89,13 @@ const adjustStock = async (req, res, next) => {
           userId: createdById,
         },
       });
+
+      sendPushNotification(
+        createdById,
+        'Stock bajo',
+        `El producto ${product.name} tiene ${newQuantity} unidades en ${warehouse.name}`,
+        { type: 'LOW_STOCK', productId, warehouseId }
+      ).catch(() => {});
     }
 
     res.status(201).json({ message: 'Stock ajustado', movement, newQuantity });

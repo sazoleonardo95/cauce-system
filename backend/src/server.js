@@ -5,6 +5,7 @@ const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
 const rateLimit = require('express-rate-limit');
 const errorHandler = require('./middleware/errorHandler');
+const { initializeFirebase } = require('./services/notificationService');
 
 const app = express();
 
@@ -28,6 +29,9 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
+// Firebase
+initializeFirebase();
+
 // Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/products', require('./routes/products'));
@@ -37,6 +41,7 @@ app.use('/api/customers', require('./routes/customers'));
 app.use('/api/sales', require('./routes/sales'));
 app.use('/api/invitations', require('./routes/invitations'));
 app.use('/api/dashboard', require('./routes/dashboard'));
+app.use('/api/notifications', require('./routes/notifications'));
 
 // Health check
 app.get('/api/health', (req, res) => {

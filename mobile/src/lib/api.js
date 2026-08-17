@@ -213,6 +213,23 @@ class ApiClient {
   cancelInvitation(id) {
     return this.post(`/invitations/${id}/cancel`);
   }
+
+  // Notifications
+  getNotifications() {
+    return this.get('/notifications');
+  }
+
+  markNotificationRead(id) {
+    return this.patch(`/notifications/${id}/read`);
+  }
+
+  markAllNotificationsRead() {
+    return this.patch('/notifications/read-all');
+  }
+
+  registerPushToken(token, platform) {
+    return this.post('/notifications/register-token', { token, platform });
+  }
 }
 
 export const api = new ApiClient();

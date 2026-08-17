@@ -18,6 +18,7 @@ import InventoryScreen from './src/screens/InventoryScreen';
 import CustomersScreen from './src/screens/CustomersScreen';
 import InvitationsScreen from './src/screens/InvitationsScreen';
 import WarehousesScreen from './src/screens/WarehousesScreen';
+import NotificationsScreen from './src/screens/NotificationsScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -148,6 +149,13 @@ function AppTabs() {
         component={ProfileScreen}
         options={{
           tabBarIcon: ({ color }) => <TabIcon icon="👤" />,
+        }}
+      />
+      <Tab.Screen
+        name="Notificaciones"
+        component={NotificationsScreen}
+        options={{
+          tabBarIcon: ({ color }) => <TabIcon icon="🔔" />,
         }}
       />
     </Tab.Navigator>

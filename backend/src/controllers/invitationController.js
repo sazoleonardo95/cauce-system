@@ -2,6 +2,7 @@ const { v4: uuidv4 } = require('uuid');
 const bcrypt = require('bcryptjs');
 const prisma = require('../config/database');
 const { sendInvitationEmail } = require('../config/email');
+const { sendPushNotification } = require('../services/notificationService');
 
 const getInvitations = async (req, res, next) => {
   try {
@@ -125,6 +126,14 @@ const acceptInvitation = async (req, res, next) => {
       where: { id: invitation.id },
       data: { status: 'ACCEPTED', acceptedAt: new Date() },
     });
+
+    const inviterName = `${user.firstName} ${user.lastName}`;
+    sendPushNotification(
+      invitation.invitedById,
+      'Invitacion aceptada',
+      `${inviterName} acepto tu invitacion y se unio a ${invitation.company.name}`,
+      { type: 'INVITATION_ACCEPTED', invitationId: invitation.id }
+    ).catch(() => {});
 
     const { generateTokens } = require('../middleware/auth');
     const tokens = generateTokens(user.id);

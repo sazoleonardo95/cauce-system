@@ -32,8 +32,9 @@
     "plugins": [],
     "extra": {
       "eas": {
-        "projectId": "1f4ed618-1b10-41a4-a73d-23143859c1f8"
+        "projectId": "702e2357-e91a-4c87-ab36-1fbc733c947e"
       }
-    }
+    },
+    "owner": "leosazom2"
   }
 }
